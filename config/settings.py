@@ -47,32 +47,21 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-in-production")
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "jwt-secret-key-change-in-production")
 
-    # Database settings with absolute path for cloud deployment
+    # Database settings - PostgreSQL for production, SQLite for development
     _db_url = os.environ.get("DATABASE_URL")
+    
     if _db_url:
+        # Use provided DATABASE_URL (likely PostgreSQL from Render)
+        # Fix potential postgres:// vs postgresql:// issue
+        if _db_url.startswith("postgres://"):
+            _db_url = _db_url.replace("postgres://", "postgresql://", 1)
         SQLALCHEMY_DATABASE_URI = _db_url
     else:
-        # Use absolute path approach for SQLite
+        # Fallback to SQLite for local development
         basedir = os.path.abspath(os.path.dirname(__file__))
-        
-        # Check if we're in a cloud environment
-        is_cloud = any([
-            os.environ.get("RENDER"),
-            os.environ.get("RENDER_EXTERNAL_HOSTNAME"),
-            os.environ.get("RAILWAY_ENVIRONMENT"),
-            os.environ.get("DYNO"),  # Heroku
-            os.environ.get("PORT") and not os.path.exists(os.path.join(basedir, "..", "attendance.db"))
-        ])
-        
-        if is_cloud:
-            # Use /tmp directory for cloud platforms (writable)
-            db_path = "/tmp/attendance.db"
-        else:
-            # Use local path for development
-            db_path = os.path.join(basedir, "..", "instance", "attendance.db")
-            # Ensure the instance directory exists
-            os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
+        db_path = os.path.join(basedir, "..", "instance", "attendance.db")
+        # Ensure the instance directory exists
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
