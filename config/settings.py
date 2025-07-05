@@ -47,14 +47,34 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-in-production")
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "jwt-secret-key-change-in-production")
 
-    # Database settings (robust cloud/local detection)
+    # Database settings with absolute path for cloud deployment
     _db_url = os.environ.get("DATABASE_URL")
     if _db_url:
         SQLALCHEMY_DATABASE_URI = _db_url
-    elif os.environ.get("RENDER") or os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
-        SQLALCHEMY_DATABASE_URI = "sqlite:////tmp/attendance.db"
     else:
-        SQLALCHEMY_DATABASE_URI = "sqlite:///attendance.db"
+        # Use absolute path approach for SQLite
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        
+        # Check if we're in a cloud environment
+        is_cloud = any([
+            os.environ.get("RENDER"),
+            os.environ.get("RENDER_EXTERNAL_HOSTNAME"),
+            os.environ.get("RAILWAY_ENVIRONMENT"),
+            os.environ.get("DYNO"),  # Heroku
+            os.environ.get("PORT") and not os.path.exists(os.path.join(basedir, "..", "attendance.db"))
+        ])
+        
+        if is_cloud:
+            # Use /tmp directory for cloud platforms (writable)
+            db_path = "/tmp/attendance.db"
+        else:
+            # Use local path for development
+            db_path = os.path.join(basedir, "..", "instance", "attendance.db")
+            # Ensure the instance directory exists
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = os.environ.get("SQLALCHEMY_ECHO", "False").lower() == "true"
     

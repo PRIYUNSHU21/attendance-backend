@@ -40,6 +40,7 @@ Frontend → API Call → Route Handler → Service Function → Database (via t
 """
 
 from flask_sqlalchemy import SQLAlchemy
+import os
 
 # Create the database instance
 db = SQLAlchemy()
@@ -50,6 +51,18 @@ def init_db(app):
     
     # Create all tables within app context
     with app.app_context():
+        # Debug: Print database URI for troubleshooting
+        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')
+        print(f"Database URI: {db_uri}")
+        
+        # Check if database directory is writable (for SQLite)
+        if db_uri.startswith('sqlite:///'):
+            db_path = db_uri.replace('sqlite:///', '')
+            db_dir = os.path.dirname(db_path) if os.path.dirname(db_path) else '.'
+            print(f"Database path: {db_path}")
+            print(f"Database directory: {db_dir}")
+            print(f"Directory writable: {os.access(db_dir, os.W_OK) if os.path.exists(db_dir) else 'Directory does not exist'}")
+        
         db.create_all()
         print("Database tables created successfully!")
 
