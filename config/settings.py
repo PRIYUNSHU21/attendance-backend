@@ -49,13 +49,15 @@ class Config:
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "jwt-secret-key-change-in-production")
     
     # Database settings
-    if os.environ.get("RENDER"):
-        # Use a writable directory on Render
-        SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:////tmp/attendance.db")
-    else:
-        # Default for local development
-        SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///attendance.db")
-        
+    # Use /tmp directory for SQLite on cloud platforms (Render, Railway, etc.)
+    _is_cloud = any([
+        os.environ.get("RENDER"),
+        os.environ.get("RAILWAY_ENVIRONMENT"), 
+        os.environ.get("DYNO"),  # Heroku
+        os.environ.get("PORT") and not os.path.exists("attendance.db")  # Generic cloud check
+    ])
+    _default_db_path = "sqlite:////tmp/attendance.db" if _is_cloud else "sqlite:///attendance.db"
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", _default_db_path)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = os.environ.get("SQLALCHEMY_ECHO", "False").lower() == "true"
     
