@@ -7,14 +7,15 @@ Think of it as the "control center" that brings everything together.
 
 🔧 FOR FRONTEND DEVELOPERS:
 - This file creates the web server that your frontend will talk to
-- It sets up CORS so your React/Vue/Angular app can make API calls
+- It sets up CORS so your React/Vue/Angular/Flutter app can make API calls
 - All API endpoints are registered here through "blueprints"
-- The server runs on http://127.0.0.1:5000 by default
+- Production: Deployed on Render with PostgreSQL
+- Development: Runs on http://127.0.0.1:5000 locally
 
 📋 WHAT HAPPENS HERE:
 1. Creates the Flask web application
 2. Enables CORS for frontend communication
-3. Sets up the database connection
+3. Sets up the database connection (PostgreSQL in production, SQLite in development)
 4. Registers all API routes (auth, attendance, admin, reports)
 5. Provides a health check endpoint
 6. Handles basic attendance endpoints for backward compatibility
@@ -27,6 +28,12 @@ Think of it as the "control center" that brings everything together.
 - Health: /health (check if server is running)
 
 ⚡ QUICK START FOR FRONTEND:
+Production:
+1. Check health: GET https://your-app.onrender.com/health
+2. Login user: POST https://your-app.onrender.com/auth/login
+3. Use the JWT token for authenticated requests
+
+Development:
 1. Make sure this server is running (python app.py)
 2. Check health: GET http://127.0.0.1:5000/health
 3. Login user: POST http://127.0.0.1:5000/auth/login

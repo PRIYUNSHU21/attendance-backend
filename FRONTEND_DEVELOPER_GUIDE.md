@@ -3,6 +3,46 @@
 ## 🎯 Overview
 This guide explains every file in the attendance backend system and how frontend developers can work with them.
 
+## 🌐 **PRODUCTION DEPLOYMENT STATUS**
+
+### ✅ **LIVE & RUNNING**
+- **Production URL**: https://your-app.onrender.com
+- **Database**: PostgreSQL (managed by Render)
+- **Status**: Deployed and operational
+- **SSL/HTTPS**: Automatically configured
+- **Auto-deployment**: Connected to GitHub
+
+### 🔗 **API Base URLs**
+```javascript
+// Use these in your frontend:
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://your-app.onrender.com'
+  : 'http://127.0.0.1:5000';
+
+// Examples:
+// Health: GET ${API_BASE_URL}/health
+// Login: POST ${API_BASE_URL}/auth/login
+// Check-in: POST ${API_BASE_URL}/attendance/check-in
+```
+
+### 📱 **Flutter Integration**
+```dart
+// In your Flutter app:
+class ApiService {
+  static const String baseUrl = 'https://your-app.onrender.com';
+  
+  // Health check
+  static String get healthUrl => '$baseUrl/health';
+  
+  // Authentication
+  static String get loginUrl => '$baseUrl/auth/login';
+  static String get registerUrl => '$baseUrl/auth/register';
+  
+  // Attendance
+  static String get checkInUrl => '$baseUrl/attendance/check-in';
+}
+```
+
 ---
 
 ## 📱 **ROOT LEVEL FILES**
@@ -11,10 +51,12 @@ This guide explains every file in the attendance backend system and how frontend
 **What it does:** Creates and configures the Flask web server
 **For frontend:** This is what serves your API endpoints
 **Key info:** 
-- Runs on http://127.0.0.1:5000 by default
+- Production: Live on Render with PostgreSQL database
+- Development: Runs on http://127.0.0.1:5000 locally
 - Registers all API routes (/auth, /attendance, /admin, /reports)
 - Enables CORS for frontend communication
-- **Start with:** `python app.py`
+- **Production URL:** https://your-app.onrender.com
+- **Development:** `python app.py`
 
 ### 🏃 `run.py` - ALTERNATIVE STARTUP SCRIPT
 **What it does:** Alternative way to start the application

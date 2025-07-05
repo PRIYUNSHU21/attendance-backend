@@ -2,6 +2,14 @@
 
 A comprehensive, enterprise-grade Flask-based backend system for managing attendance tracking with advanced location-based verification, role-based access control, and comprehensive reporting capabilities.
 
+## 🚀 **PRODUCTION STATUS: LIVE & DEPLOYED**
+
+**✅ Currently deployed on Render with PostgreSQL database**
+- **Production URL**: [Live and operational]
+- **Database**: PostgreSQL (managed, persistent)
+- **SSL/HTTPS**: Automatically configured
+- **Auto-deployment**: Connected to GitHub for continuous deployment
+
 ## 🎯 Overview
 
 This is a complete attendance management solution designed for educational institutions, corporate environments, and organizations requiring precise attendance tracking. The system provides geofence-based validation, real-time reporting, administrative dashboards, and secure multi-tenant architecture.
@@ -51,7 +59,7 @@ This is a complete attendance management solution designed for educational insti
 ## 🛠️ Technology Stack
 
 - **Backend Framework**: Flask (Python 3.8+)
-- **Database**: SQLAlchemy ORM with SQLite (PostgreSQL/MySQL ready)
+- **Database**: SQLAlchemy ORM with PostgreSQL (production) / SQLite (development)
 - **Authentication**: JWT (PyJWT) with session management
 - **Password Hashing**: bcrypt for secure password storage
 - **API Design**: RESTful endpoints with standardized JSON responses
@@ -303,7 +311,8 @@ SECRET_KEY=your-super-secret-key-here
 JWT_SECRET_KEY=your-jwt-secret-key-here
 
 # Database Configuration
-DATABASE_URL=sqlite:///instance/attendance.db
+DATABASE_URL=postgresql://username:password@hostname:port/database  # Production (PostgreSQL)
+# DATABASE_URL=sqlite:///instance/attendance.db                     # Development (SQLite)
 
 # Security Settings
 DEFAULT_GEOFENCE_RADIUS=100
@@ -608,19 +617,43 @@ LOG_LEVEL=INFO                       # Logging level
 
 ### 🗃️ Database Configuration Options
 
-#### SQLite (Default - Development)
+#### PostgreSQL (Production - Recommended)
+```python
+DATABASE_URL=postgresql://username:password@hostname:port/database
+# Example for Render: postgresql://user:pass@dpg-xxxxx-a.oregon-postgres.render.com/dbname
+```
+
+#### SQLite (Development/Local)
 ```python
 DATABASE_URL=sqlite:///instance/attendance.db
 ```
 
-#### PostgreSQL (Production Recommended)
-```python
-DATABASE_URL=postgresql://username:password@localhost:5432/attendance
-```
-
-#### MySQL/MariaDB
+#### MySQL/MariaDB (Alternative)
 ```python
 DATABASE_URL=mysql://username:password@localhost:3306/attendance
+```
+
+## 🚀 Cloud Deployment (Production Ready)
+
+### 🌐 Render Deployment (Recommended)
+This system is deployed and running on Render with PostgreSQL:
+
+1. **Automatic Deployment**: Connected to GitHub for continuous deployment
+2. **PostgreSQL Database**: Managed PostgreSQL database for data persistence
+3. **Production URL**: [Your production URL here]
+4. **Environment Variables**: Automatically configured for production
+
+#### Quick Render Setup:
+1. Push your code to GitHub
+2. Connect your repository to Render
+3. Add a PostgreSQL database service
+4. Set environment variables (DATABASE_URL is auto-configured)
+5. Deploy with the included `Procfile` and `runtime.txt`
+
+### 🔗 Production API Base URL
+```
+Production: https://your-app-name.onrender.com
+Development: http://127.0.0.1:5000
 ```
 
 ## 🧪 Testing & Quality Assurance
@@ -760,13 +793,15 @@ CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
 
 ### Core Dependencies
 ```
-Flask==2.3.3              # Web framework
-Flask-SQLAlchemy==3.0.5   # Database ORM
-Flask-CORS==4.0.0         # Cross-origin resource sharing
-PyJWT==2.8.0              # JSON Web Tokens
-bcrypt==4.0.1             # Password hashing
-python-dotenv==1.0.0      # Environment variable management
-requests==2.31.0          # HTTP library for testing
+Flask==3.1.1              # Web framework
+Flask-SQLAlchemy==3.1.1   # Database ORM
+Flask-CORS==6.0.1         # Cross-origin resource sharing
+PyJWT==2.10.1             # JSON Web Tokens
+bcrypt==4.3.0             # Password hashing
+python-dotenv==1.1.1      # Environment variable management
+requests==2.32.4          # HTTP library for testing
+gunicorn==23.0.0          # Production WSGI server
+psycopg==3.1.18           # PostgreSQL adapter for Python
 ```
 
 ### Development Dependencies
