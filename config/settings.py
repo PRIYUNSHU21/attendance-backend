@@ -52,9 +52,11 @@ class Config:
     
     if _db_url:
         # Use provided DATABASE_URL (likely PostgreSQL from Render)
-        # Fix potential postgres:// vs postgresql:// issue
+        # Fix potential postgres:// vs postgresql:// issue and force psycopg driver
         if _db_url.startswith("postgres://"):
-            _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+            _db_url = _db_url.replace("postgres://", "postgresql+psycopg://", 1)
+        elif _db_url.startswith("postgresql://"):
+            _db_url = _db_url.replace("postgresql://", "postgresql+psycopg://", 1)
         SQLALCHEMY_DATABASE_URI = _db_url
     else:
         # Fallback to SQLite for local development
