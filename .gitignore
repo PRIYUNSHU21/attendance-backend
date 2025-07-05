@@ -1,0 +1,304 @@
+# 🚫 GIT IGNORE FILE - .gitignore
+#
+# 🎯 WHAT THIS FILE DOES:
+# This file tells Git which files and folders to ignore when committing code.
+# Think of it as a "do not track" list for sensitive, temporary, or unnecessary files.
+#
+# 🔧 FOR DEVELOPERS:
+# - Prevents sensitive data (passwords, keys) from being committed
+# - Ignores temporary files that change frequently
+# - Keeps repository clean and focused on actual source code
+# - Prevents conflicts between different development environments
+
+# =============================================================================
+# 🔒 SENSITIVE FILES (NEVER COMMIT THESE!)
+# =============================================================================
+
+# Environment variables (contains secrets, API keys, passwords)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Database files (may contain sensitive user data)
+*.db
+*.sqlite
+*.sqlite3
+instance/
+instance/*.db
+
+# Configuration files with secrets
+config/local_settings.py
+config/production_settings.py
+secrets.json
+
+# =============================================================================
+# 🐍 PYTHON-SPECIFIC FILES
+# =============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+attendance_env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# =============================================================================
+# 🌐 WEB DEVELOPMENT FILES
+# =============================================================================
+
+# Node.js (if using for frontend build tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Frontend build files
+build/
+dist/
+.next/
+out/
+
+# =============================================================================
+# 💻 DEVELOPMENT ENVIRONMENT FILES
+# =============================================================================
+
+# IDE and Editor files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+desktop.ini
+
+# =============================================================================
+# 📊 LOGS AND TEMPORARY FILES
+# =============================================================================
+
+# Log files
+*.log
+logs/
+log/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.tmp/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# =============================================================================
+# 🗄️ DATABASE AND DATA FILES
+# =============================================================================
+
+# Database dumps
+*.sql
+*.dump
+
+# Data files (avoid committing large datasets)
+data/
+datasets/
+uploads/
+media/
+
+# =============================================================================
+# 🔧 DEPLOYMENT AND DOCKER
+# =============================================================================
+
+# Docker
+.dockerignore
+Dockerfile.prod
+
+# Deployment scripts with sensitive info
+deploy.sh
+deployment/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.p12
+
+# =============================================================================
+# 📦 PACKAGE MANAGERS
+# =============================================================================
+
+# Poetry
+poetry.lock
+
+# Conda
+.conda/
+
+# =============================================================================
+# 🚀 PRODUCTION SPECIFIC
+# =============================================================================
+
+# Static files (generated)
+staticfiles/
+static/
+
+# Collected static files
+/static/
+
+# Media files
+/media/
+
+# =============================================================================
+# 🧪 TESTING
+# =============================================================================
+
+# Test databases
+test.db
+test.sqlite
+test_*.db
+
+# Test outputs
+test-results/
+test-reports/
+
+# =============================================================================
+# 📝 DOCUMENTATION
+# =============================================================================
+
+# Generated documentation
+docs/_build/
+docs/build/
+
+# =============================================================================
+# FRONTEND DEVELOPER NOTES
+# =============================================================================
+
+# 📱 WHY THESE FILES ARE IGNORED:
+#
+# .env files - Contain API keys, database passwords, secret tokens
+# __pycache__/ - Python compiled bytecode (regenerated automatically)
+# *.db files - Database files with user data (use migrations instead)
+# venv/ - Virtual environment (too large, recreate with requirements.txt)
+# .DS_Store - macOS system files (not needed for the project)
+# *.log - Log files (change frequently, not part of source code)
+# node_modules/ - Frontend dependencies (recreate with package.json)
+# .vscode/ - Personal IDE settings (different for each developer)
+#
+# 🔒 SECURITY REMINDERS:
+# - Never commit passwords, API keys, or secret tokens
+# - Always use .env files for sensitive configuration
+# - Database files often contain user data - don't commit them
+# - If you accidentally commit sensitive data, remove it from Git history
+#
+# 🛠️ DEVELOPMENT WORKFLOW:
+# 1. Create .env file locally (not committed)
+# 2. Add all secrets to .env
+# 3. Use requirements.txt for Python dependencies
+# 4. Use database migrations instead of committing .db files
+# 5. Share configuration templates (config.example.py) instead of actual config files
