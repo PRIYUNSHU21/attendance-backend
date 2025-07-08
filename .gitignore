@@ -28,6 +28,9 @@
 instance/
 instance/*.db
 
+# (2025-07-08) The attendance_frontend folder has been removed from this backend repo.
+# If you re-add a frontend, keep it outside this backend directory for production.
+
 # Configuration files with secrets
 config/local_settings.py
 config/production_settings.py

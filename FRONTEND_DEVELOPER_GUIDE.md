@@ -1,7 +1,10 @@
 # 📁 FILE STRUCTURE GUIDE FOR FRONTEND DEVELOPERS
 
+
 ## 🎯 Overview
 This guide explains every file in the attendance backend system and how frontend developers can work with them.
+
+**Note:** The frontend codebase is now managed and deployed separately from this backend repository. Integrate your frontend by connecting to the API endpoints described below. All backend deployment and security best practices are handled in this repository.
 
 ## 🌐 **PRODUCTION DEPLOYMENT STATUS**
 

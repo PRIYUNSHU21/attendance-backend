@@ -1,2 +1,3 @@
-# Ignore the entire frontend folder - it's a separate project
-attendance_frontend/
+# (2025-07-08) The attendance_frontend folder has been removed from this backend repo.
+# If you re-add a frontend, keep it outside this backend directory for production.
+# This file remains for documentation and future-proofing.

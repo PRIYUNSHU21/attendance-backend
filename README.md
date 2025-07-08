@@ -67,58 +67,61 @@ This is a complete attendance management solution designed for educational insti
 - **Environment Management**: python-dotenv for configuration
 - **Testing**: Comprehensive test suite with requests library
 
-## 📁 Project Architecture
+
+## 📁 Project Architecture (Backend Only)
 
 ```
 attendance_backend/
-├── 📄 app.py                 # Main Flask application with route registration
-├── 📄 run.py                 # Application entry point for production
-├── 📄 requirements.txt      # Python dependencies and versions
-├── 📄 .env                  # Environment variables and configuration
-├── 📄 README.md             # Project documentation
-├── 📄 PROJECT_OVERVIEW.md   # Technical project overview
-├── 📄 FRONTEND_DEVELOPER_GUIDE.md # Frontend integration guide
+├── app.py                 # Main Flask application with route registration
+├── run.py                 # Application entry point for production
+├── requirements.txt       # Python dependencies and versions
+├── .env                   # Environment variables and configuration
+├── README.md              # Project documentation
+├── PROJECT_OVERVIEW.md    # Technical project overview
+├── FRONTEND_DEVELOPER_GUIDE.md # API and integration guide for frontend devs
 │
-├── 📁 config/               # Configuration Management
-│   ├── 📄 db.py            # Database connection and initialization
-│   ├── 📄 settings.py      # Application settings and environment configs
-│   └── 📄 schema.sql       # Database schema definition (optional)
+├── config/                # Configuration Management
+│   ├── db.py              # Database connection and initialization
+│   ├── settings.py        # Application settings and environment configs
+│   └── schema.sql         # Database schema definition (optional)
 │
-├── 📁 models/               # Data Models (SQLAlchemy ORM)
-│   ├── 📄 __init__.py      # Models package initialization and imports
-│   ├── 📄 user.py          # User model with authentication methods
-│   ├── 📄 organisation.py  # Organization model and multi-tenancy
-│   ├── 📄 session.py       # Session model for attendance tracking
-│   └── 📄 attendance.py    # Attendance records and session management
+├── models/                # Data Models (SQLAlchemy ORM)
+│   ├── __init__.py        # Models package initialization and imports
+│   ├── user.py            # User model with authentication methods
+│   ├── organisation.py    # Organization model and multi-tenancy
+│   ├── session.py         # Session model for attendance tracking
+│   └── attendance.py      # Attendance records and session management
 │
-├── 📁 services/             # Business Logic Layer
-│   ├── 📄 auth_services.py    # Authentication and authorization logic
-│   ├── 📄 attendance_service.py # Attendance marking and management
-│   ├── 📄 admin_service.py    # Administrative operations and bulk actions
-│   ├── 📄 geo_service.py      # Geospatial calculations and location services
-│   └── 📄 hash_service.py     # Password hashing and security utilities
+├── services/              # Business Logic Layer
+│   ├── auth_services.py       # Authentication and authorization logic
+│   ├── attendance_service.py  # Attendance marking and management
+│   ├── admin_service.py       # Administrative operations and bulk actions
+│   ├── geo_service.py         # Geospatial calculations and location services
+│   └── hash_service.py        # Password hashing and security utilities
 │
-├── 📁 utils/                # Utility Functions
-│   ├── 📄 auth.py          # JWT decorators and token management
-│   ├── 📄 response.py      # Standardized API response formatting
-│   └── 📄 validators.py    # Input validation and data sanitization
+├── utils/                 # Utility Functions
+│   ├── auth.py            # JWT decorators and token management
+│   ├── response.py        # Standardized API response formatting
+│   └── validators.py      # Input validation and data sanitization
 │
-├── 📁 routes/               # API Route Blueprints
-│   ├── 📄 auth.py          # Authentication endpoints (login, register, etc.)
-│   ├── 📄 attendance_mark.py # Attendance management endpoints
-│   ├── 📄 admin.py         # Administrative endpoints
-│   └── 📄 reports.py       # Reporting and analytics endpoints
+├── routes/                # API Route Blueprints
+│   ├── auth.py            # Authentication endpoints (login, register, etc.)
+│   ├── attendance_mark.py # Attendance management endpoints
+│   ├── admin.py           # Administrative endpoints
+│   └── reports.py         # Reporting and analytics endpoints
 │
-├── 📁 tests/                # Testing & Development Utilities
-│   ├── 📄 __init__.py      # Tests package initialization
-│   ├── 📄 test_app.py      # Unit tests for Flask application components
-│   ├── 📄 test_complete.py # Comprehensive API integration tests (primary)
-│   ├── 📄 init_db.py       # Database initialization and schema setup
-│   └── 📄 check_all_data.py # Database data verification and inspection
+├── tests/                 # Testing & Development Utilities
+│   ├── __init__.py        # Tests package initialization
+│   ├── test_app.py        # Unit tests for Flask application components
+│   ├── test_complete.py   # Comprehensive API integration tests (primary)
+│   ├── init_db.py         # Database initialization and schema setup
+│   └── check_all_data.py  # Database data verification and inspection
 │
-└── 📁 instance/             # Instance-specific Data
-    └── 📄 attendance.db     # SQLite database file
+└── instance/              # Instance-specific Data
+    └── attendance.db      # SQLite database file
 ```
+
+**Note:** The frontend codebase is now managed separately. This repository is for the backend API only. For frontend integration, see the `FRONTEND_DEVELOPER_GUIDE.md` and connect your frontend to the API URL provided by your Render deployment.
 
 ## 🔧 Module Breakdown
 

@@ -45,12 +45,14 @@
 - **SSL/HTTPS**: Automatically configured
 - **Auto-deployment**: Connected to GitHub
 
+
 ### 🔗 **Live Production URLs**
 ```
 Health Check: GET https://your-app.onrender.com/health
 API Base URL: https://your-app.onrender.com
-Admin Dashboard: https://your-app.onrender.com/admin
 ```
+
+**Note:** The frontend is now managed and deployed separately. Only the backend API is deployed from this repository. For frontend integration, use the API base URL above and see the `FRONTEND_DEVELOPER_GUIDE.md`.
 
 ### 📊 **Production Database**
 - **Type**: PostgreSQL 14+
