@@ -302,3 +302,5 @@ docs/build/
 # 3. Use requirements.txt for Python dependencies
 # 4. Use database migrations instead of committing .db files
 # 5. Share configuration templates (config.example.py) instead of actual config files
+# Frontend folder (now managed separately)
+attendance_frontend/
