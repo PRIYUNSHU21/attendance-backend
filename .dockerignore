@@ -1,0 +1,43 @@
+# Ignore the entire frontend folder
+attendance_frontend/
+
+# Git and version control
+.git
+.gitignore
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env/
+
+# Local development
+.env.local
+.env.development
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE folders
+.idea/
+.vscode/
+
+# Documentation and other files not needed for production
+docs/
+README.md
+DEPLOYMENT.md
+FRONTEND_DEVELOPER_GUIDE.md
+PROJECT_OVERVIEW.md
+tests/
+
+# Log files
+*.log

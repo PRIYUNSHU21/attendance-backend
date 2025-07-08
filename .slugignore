@@ -1,0 +1,2 @@
+# Ignore the entire frontend folder - it's a separate project
+attendance_frontend/
