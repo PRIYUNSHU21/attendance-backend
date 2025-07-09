@@ -125,7 +125,9 @@ def generate_token(payload, expiry_hours=24):
 
 def decode_token(token):
     """
-    Decode a JWT token and return the payload.
+    Decode a JWT token and return the payload with enhanced security validation.
+    
+    🔒 SECURITY ENHANCEMENT: Validates organization existence and session blacklist.
     
     Args:
         token: JWT token string
@@ -134,15 +136,38 @@ def decode_token(token):
         Decoded payload dictionary
         
     Raises:
-        Exception: If token is invalid or expired
+        Exception: If token is invalid, expired, or security checks fail
     """
     try:
         payload = jwt.decode(token, get_secret_key(), algorithms=["HS256"])
+        
+        # Enhanced security validation
+        if 'org_id' in payload:
+            # Check if organization still exists and is active
+            from models.organisation import Organisation
+            org = Organisation.query.filter(
+                Organisation.org_id == payload['org_id'],
+                Organisation.is_active == True
+            ).first()
+            
+            if not org:
+                raise Exception("Organization no longer exists")
+        
+        # Check if this is a session token and validate it
+        if 'session_token' in payload:
+            from models.session import is_session_valid
+            is_valid, message = is_session_valid(payload['session_token'])
+            if not is_valid:
+                raise Exception(f"Session validation failed: {message}")
+        
         return payload
     except jwt.ExpiredSignatureError:
         raise Exception("Token has expired")
     except jwt.InvalidTokenError:
         raise Exception("Invalid token")
+    except Exception as e:
+        # Re-raise our custom exceptions
+        raise e
 
 def token_required(f):
     """

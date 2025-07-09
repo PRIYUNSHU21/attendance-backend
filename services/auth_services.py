@@ -116,12 +116,13 @@ def login_user(email, password, device_info=None, ip_address=None):
         ip_address=ip_address
     )
     
-    # Generate JWT token for additional security
+    # Generate JWT token with session token for enhanced security validation
     jwt_token = generate_token({
         "user_id": user.user_id,
         "org_id": user.org_id,
         "role": user.role,
-        "session_id": session.session_id
+        "session_id": session.session_id,
+        "session_token": session_token  # 🔒 SECURITY: Include session token for validation
     })
     
     return {

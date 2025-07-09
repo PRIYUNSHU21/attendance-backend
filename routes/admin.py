@@ -473,11 +473,23 @@ def delete_organization(org_id):
         
         # Perform the actual deletion
         from models.organisation import delete_organisation
+        from models.session import invalidate_organization_sessions
+        
+        # 🔒 SECURITY: Invalidate all sessions for users in this organization
+        try:
+            invalidated_count = invalidate_organization_sessions(org_id, 'org_deleted')
+            print(f"🔒 Security: Invalidated {invalidated_count} sessions for deleted organization {org_id}")
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to invalidate sessions for org {org_id}: {str(e)}")
+        
         result = delete_organisation(org_id)
         
         if result["success"]:
             return success_response(
-                data=result["deleted_counts"],
+                data={
+                    **result["deleted_counts"],
+                    "invalidated_sessions": invalidated_count if 'invalidated_count' in locals() else 0
+                },
                 message=result["message"]
             )
         else:
@@ -508,14 +520,26 @@ def soft_delete_organization(org_id):
             )
         
         from models.organisation import soft_delete_organisation
+        from models.session import invalidate_organization_sessions
+        
+        # 🔒 SECURITY: Invalidate all sessions for users in this organization
+        try:
+            invalidated_count = invalidate_organization_sessions(org_id, 'org_soft_deleted')
+            print(f"🔒 Security: Invalidated {invalidated_count} sessions for soft-deleted organization {org_id}")
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to invalidate sessions for org {org_id}: {str(e)}")
+        
         org = soft_delete_organisation(org_id)
         
         if not org:
             return error_response("Organization not found", 404)
         
         return success_response(
-            data=org.to_dict(),
-            message="Organization deactivated successfully. Data preserved."
+            data={
+                **org.to_dict(),
+                "invalidated_sessions": invalidated_count if 'invalidated_count' in locals() else 0
+            },
+            message="Organization deactivated successfully. All user sessions invalidated."
         )
         
     except Exception as e:

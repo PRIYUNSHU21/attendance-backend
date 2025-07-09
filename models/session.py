@@ -42,6 +42,30 @@ class UserSession(db.Model):
         """Check if the session is expired."""
         return datetime.utcnow() > self.expires_at
 
+class InvalidatedSession(db.Model):
+    """Model for tracking invalidated sessions (security audit trail)."""
+    __tablename__ = 'invalidated_sessions'
+    
+    session_id = db.Column(db.String(255), primary_key=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id'), nullable=False)
+    session_token = db.Column(db.String(255), nullable=False)
+    invalidated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reason = db.Column(db.String(255), nullable=False)
+    
+    def __repr__(self):
+        return f'<InvalidatedSession {self.session_id}>'
+    
+    def to_dict(self):
+        return {
+            'session_id': self.session_id,
+            'user_id': self.user_id,
+            'org_id': self.org_id,
+            'session_token': self.session_token,
+            'invalidated_at': self.invalidated_at.isoformat() if self.invalidated_at else None,
+            'reason': self.reason
+        }
+
 def create_session(user_id, session_token, device_info=None, ip_address=None, duration_hours=24):
     """Create a new user session."""
     try:
@@ -54,6 +78,7 @@ def create_session(user_id, session_token, device_info=None, ip_address=None, du
             device_info=device_info,
             ip_address=ip_address
         )
+        
         db.session.add(session)
         db.session.commit()
         return session
@@ -82,12 +107,29 @@ def validate_session(session_token):
     
     return session.user
 
-def invalidate_session(session_token):
-    """Invalidate a session (logout)."""
+def invalidate_session(session_token, reason='manual_logout'):
+    """Invalidate a session (logout) with audit trail."""
     try:
         session = find_session_by_token(session_token)
         if session:
+            # Get user info for audit trail
+            from models.user import User
+            user = User.query.filter(User.user_id == session.user_id).first()
+            org_id = user.org_id if user else None
+            
+            # Mark session as inactive
             session.is_active = False
+            
+            # Add to invalidated sessions audit trail
+            invalidated_session = InvalidatedSession(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                org_id=org_id,
+                session_token=session_token,
+                reason=reason
+            )
+            
+            db.session.add(invalidated_session)
             db.session.commit()
             return True
         return False
@@ -95,38 +137,167 @@ def invalidate_session(session_token):
         db.session.rollback()
         raise e
 
-def cleanup_expired_sessions():
-    """Clean up expired sessions."""
+def invalidate_user_sessions(user_id, reason='user_deleted'):
+    """Invalidate all active sessions for a specific user with audit trail."""
     try:
-        expired_sessions = UserSession.query.filter(
-            UserSession.expires_at < datetime.utcnow(),
+        sessions = UserSession.query.filter(
+            UserSession.user_id == user_id,
             UserSession.is_active == True
         ).all()
         
-        for session in expired_sessions:
+        # Get user info for audit trail
+        from models.user import User
+        user = User.query.filter(User.user_id == user_id).first()
+        org_id = user.org_id if user else None
+        
+        count = 0
+        for session in sessions:
+            # Mark session as inactive
             session.is_active = False
+            
+            # Add to audit trail
+            invalidated_session = InvalidatedSession(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                org_id=org_id,
+                session_token=session.session_token,
+                reason=reason
+            )
+            db.session.add(invalidated_session)
+            count += 1
         
         db.session.commit()
-        return len(expired_sessions)
+        return count
     except Exception as e:
         db.session.rollback()
         raise e
 
-def get_user_active_sessions(user_id):
-    """Get all active sessions for a user."""
-    return UserSession.query.filter_by(
-        user_id=user_id,
-        is_active=True
-    ).filter(UserSession.expires_at > datetime.utcnow()).all()
-
-def invalidate_all_user_sessions(user_id):
-    """Invalidate all sessions for a user."""
+def invalidate_organization_sessions(org_id, reason='org_deleted'):
+    """
+    Invalidate all active sessions for users in a specific organization.
+    
+    🔒 SECURITY FEATURE: When an organization is deleted, this function
+    ensures all user sessions from that organization are immediately invalidated.
+    """
     try:
-        sessions = get_user_active_sessions(user_id)
+        from models.user import User
+        
+        # Get all sessions for users in the organization
+        sessions = db.session.query(UserSession).join(
+            User, UserSession.user_id == User.user_id
+        ).filter(
+            User.org_id == org_id,
+            UserSession.is_active == True
+        ).all()
+        
+        count = 0
         for session in sessions:
+            # Mark session as inactive
             session.is_active = False
+            
+            # Add to audit trail
+            invalidated_session = InvalidatedSession(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                org_id=org_id,
+                session_token=session.session_token,
+                reason=reason
+            )
+            db.session.add(invalidated_session)
+            count += 1
+        
         db.session.commit()
-        return len(sessions)
+        return count
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def is_session_blacklisted(session_token):
+    """Check if a session token is in the blacklist."""
+    try:
+        blacklisted = InvalidatedSession.query.filter(
+            InvalidatedSession.session_token == session_token
+        ).first()
+        return blacklisted is not None
+    except Exception as e:
+        return False
+
+def is_session_valid(session_token):
+    """
+    Check if a session token is valid and active.
+    
+    🔒 SECURITY ENHANCEMENT: Also checks if the user's organization still exists
+    and if the session is blacklisted.
+    """
+    try:
+        # Check if session is blacklisted
+        if is_session_blacklisted(session_token):
+            return False, "Session has been invalidated"
+        
+        session = UserSession.query.filter(
+            UserSession.session_token == session_token,
+            UserSession.is_active == True
+        ).first()
+        
+        if not session:
+            return False, "Session not found or inactive"
+        
+        if session.is_expired():
+            # Mark expired session as inactive and add to blacklist
+            session.is_active = False
+            
+            # Add to blacklist
+            from models.user import User
+            user = User.query.filter(User.user_id == session.user_id).first()
+            org_id = user.org_id if user else None
+            
+            invalidated_session = InvalidatedSession(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                org_id=org_id,
+                session_token=session_token,
+                reason='expired'
+            )
+            db.session.add(invalidated_session)
+            db.session.commit()
+            return False, "Session expired"
+        
+        # Check if user's organization still exists and is active
+        from models.user import User
+        from models.organisation import Organisation
+        
+        user = User.query.filter(User.user_id == session.user_id).first()
+        if not user:
+            return False, "User not found"
+        
+        org = Organisation.query.filter(
+            Organisation.org_id == user.org_id,
+            Organisation.is_active == True
+        ).first()
+        
+        if not org:
+            # Organization deleted or deactivated - invalidate session
+            invalidate_session(session_token, 'org_deleted')
+            return False, "Organization no longer exists"
+        
+        return True, "Valid session"
+        
+    except Exception as e:
+        return False, f"Session validation error: {str(e)}"
+
+def cleanup_expired_sessions():
+    """Remove expired sessions from database (maintenance function)."""
+    try:
+        expired_sessions = UserSession.query.filter(
+            UserSession.expires_at < datetime.utcnow()
+        ).all()
+        
+        count = len(expired_sessions)
+        for session in expired_sessions:
+            db.session.delete(session)
+        
+        db.session.commit()
+        return count
     except Exception as e:
         db.session.rollback()
         raise e
