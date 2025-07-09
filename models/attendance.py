@@ -16,7 +16,7 @@ class AttendanceSession(db.Model):
     __tablename__ = 'attendance_sessions'
     
     session_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id'), nullable=False)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id', ondelete='CASCADE'), nullable=False)
     session_name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     start_time = db.Column(db.DateTime, nullable=False)
@@ -24,7 +24,7 @@ class AttendanceSession(db.Model):
     location_lat = db.Column(db.Float)
     location_lon = db.Column(db.Float)
     location_radius = db.Column(db.Float, default=100.0)  # radius in meters
-    created_by = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    created_by = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
@@ -52,8 +52,8 @@ class AttendanceRecord(db.Model):
     __tablename__ = 'attendance_records'
     
     record_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    session_id = db.Column(db.String(36), db.ForeignKey('attendance_sessions.session_id'), nullable=False)
-    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    session_id = db.Column(db.String(36), db.ForeignKey('attendance_sessions.session_id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
     check_in_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     check_out_time = db.Column(db.DateTime)
     check_in_lat = db.Column(db.Float)

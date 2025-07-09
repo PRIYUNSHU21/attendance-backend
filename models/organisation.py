@@ -148,24 +148,26 @@ def update_organisation(org_id, data):
 
 def delete_organisation(org_id):
     """
-    Delete an organisation and all related data.
+    Delete an organisation and all related data using CASCADE constraints.
     
     ⚠️ DANGEROUS OPERATION: This will permanently delete:
     - The organization
-    - All users in the organization  
-    - All attendance sessions
-    - All attendance records
+    - All users in the organization (CASCADE)
+    - All user sessions (CASCADE)
+    - All invalidated sessions (CASCADE)
+    - All attendance sessions (CASCADE)
+    - All attendance records (CASCADE)
     
     🔒 SAFETY CHECKS:
     - Only allows deletion if requester is admin of the organization
-    - Provides cascade deletion of all related data
+    - Uses database CASCADE constraints for clean deletion
     - Cannot be undone
     
     Args:
         org_id (str): Organization ID to delete
         
     Returns:
-        dict: {"success": bool, "message": str, "deleted_counts": dict}
+        dict: {"success": bool, "message": str, "deleted_counts": dict, "invalidated_sessions": int}
         
     Raises:
         Exception: If deletion fails
@@ -179,6 +181,7 @@ def delete_organisation(org_id):
         # Get counts before deletion for confirmation
         from models.user import User
         from models.attendance import AttendanceSession, AttendanceRecord
+        from models.session import UserSession, InvalidatedSession
         
         users_count = db.session.query(User).filter(User.org_id == org_id).count()
         sessions_count = db.session.query(AttendanceSession).filter(AttendanceSession.org_id == org_id).count()
@@ -189,49 +192,53 @@ def delete_organisation(org_id):
         if session_ids:
             records_count = db.session.query(AttendanceRecord).filter(AttendanceRecord.session_id.in_(session_ids)).count()
         
-        # Delete in proper order to avoid foreign key constraint violations
-        
-        # 1. Delete attendance records first (get session IDs, then delete records)
-        session_ids = [s.session_id for s in db.session.query(AttendanceSession).filter(AttendanceSession.org_id == org_id).all()]
-        attendance_records_deleted = 0
-        if session_ids:
-            attendance_records_deleted = db.session.query(AttendanceRecord).filter(
-                AttendanceRecord.session_id.in_(session_ids)
-            ).delete(synchronize_session=False)
-        
-        # 2. Delete attendance sessions
-        sessions_deleted = db.session.query(AttendanceSession).filter(
-            AttendanceSession.org_id == org_id
-        ).delete(synchronize_session=False)
-        
-        # 3. Delete user sessions (get user IDs, then delete sessions)
-        from models.session import UserSession
+        # Get user sessions count
         user_ids = [u.user_id for u in db.session.query(User).filter(User.org_id == org_id).all()]
-        user_sessions_deleted = 0
+        user_sessions_count = 0
         if user_ids:
-            user_sessions_deleted = db.session.query(UserSession).filter(
-                UserSession.user_id.in_(user_ids)
-            ).delete(synchronize_session=False)
+            user_sessions_count = db.session.query(UserSession).filter(UserSession.user_id.in_(user_ids)).count()
         
-        # 4. Delete users
-        users_deleted = db.session.query(User).filter(User.org_id == org_id).delete(synchronize_session=False)
+        # Invalidate all user sessions before deletion (for security audit)
+        invalidated_count = 0
+        if user_ids:
+            # Get all active sessions for users in this organization
+            active_sessions = db.session.query(UserSession).filter(
+                UserSession.user_id.in_(user_ids),
+                UserSession.is_active == True
+            ).all()
+            
+            # Create invalidated session records for audit trail
+            for session in active_sessions:
+                invalidated_session = InvalidatedSession(
+                    session_id=session.session_id,
+                    user_id=session.user_id,
+                    org_id=org_id,
+                    session_token=session.session_token,
+                    reason='org_deleted'
+                )
+                db.session.add(invalidated_session)
+                invalidated_count += 1
         
-        # 5. Finally delete the organization
+        # Store organization name for response message
+        org_name = org.name
+        
+        # Delete the organization - CASCADE will handle all related data
         db.session.delete(org)
         
-        # Commit all deletions
+        # Commit all changes (CASCADE deletion + session invalidation)
         db.session.commit()
         
         return {
             "success": True,
-            "message": f"Organization '{org.name}' and all related data deleted successfully",
+            "message": f"Organization '{org_name}' and all related data deleted successfully",
             "deleted_counts": {
                 "organization": 1,
-                "users": users_deleted,
-                "attendance_sessions": sessions_deleted,
-                "attendance_records": attendance_records_deleted,
-                "user_sessions": user_sessions_deleted
-            }
+                "users": users_count,
+                "attendance_sessions": sessions_count,
+                "attendance_records": records_count,
+                "user_sessions": user_sessions_count
+            },
+            "invalidated_sessions": invalidated_count
         }
         
     except Exception as e:

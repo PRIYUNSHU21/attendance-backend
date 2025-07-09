@@ -41,9 +41,21 @@ Frontend → API Call → Route Handler → Service Function → Database (via t
 
 from flask_sqlalchemy import SQLAlchemy
 import os
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+import sqlite3
 
 # Create the database instance
 db = SQLAlchemy()
+
+# Enable foreign key constraints for SQLite
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    """Enable foreign key constraints for SQLite connections."""
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 def init_db(app):
     """Initialize the database with the Flask app."""
