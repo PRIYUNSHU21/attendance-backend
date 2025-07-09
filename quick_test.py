@@ -145,7 +145,7 @@ def main():
         print("❌ Cannot login admin. Stopping tests.")
         return
         
-    token = login_result['data']['token']
+    token = login_result['data']['jwt_token']
     print(f"   JWT Token: {token[:50]}...")
     
     # Verify token
@@ -211,7 +211,7 @@ def main():
         )
         
         if student_login_result:
-            student_token = student_login_result['data']['token']
+            student_token = student_login_result['data']['jwt_token']
             student_headers = {"Authorization": f"Bearer {student_token}"}
             
             # Get student profile

@@ -80,7 +80,7 @@ def test_organization_deletion():
         return
         
     login_result = login_response.json()
-    token = login_result['data']['token']
+    token = login_result['data']['jwt_token']  # Fixed: use jwt_token instead of token
     auth_headers = {"Authorization": f"Bearer {token}"}
     print(f"✅ Admin logged in successfully")
     
@@ -88,7 +88,8 @@ def test_organization_deletion():
     print("\n📋 Step 4: Testing deletion preview...")
     preview_response = requests.delete(
         f"{BASE_URL}/admin/organizations/{org_id}",
-        headers=auth_headers
+        json={},  # Send empty JSON body
+        headers={"Content-Type": "application/json", **auth_headers}
     )
     
     print(f"   Status: {preview_response.status_code}")
