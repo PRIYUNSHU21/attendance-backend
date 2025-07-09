@@ -16,6 +16,9 @@ Think of it as the "login/logout API" that your frontend will call for user auth
 🔓 PUBLIC ENDPOINTS (No authentication required):
 POST /auth/login - User login
 POST /auth/register - User registration
+GET /auth/public/organizations - List organizations
+POST /auth/public/organizations - Create organization
+POST /auth/public/admin - Register first admin
 
 🔒 PROTECTED ENDPOINTS (Require JWT token):
 POST /auth/logout - User logout
@@ -270,5 +273,94 @@ def change_password():
         change_password(current_user['user_id'], old_password, new_password)
         
         return success_response(message="Password changed successfully")
+    except Exception as e:
+        return error_response(str(e), 400)
+
+# PUBLIC ENDPOINTS FOR FRONTEND ONBOARDING
+@auth_bp.route('/public/organizations', methods=['GET'])
+def get_public_organizations():
+    """Get list of organizations for registration (public endpoint)."""
+    try:
+        from models.organisation import get_all_organisations
+        organizations = get_all_organisations()
+        return success_response(
+            data=[{
+                "org_id": org.org_id,
+                "name": org.name,
+                "description": org.description,
+                "contact_email": org.contact_email
+            } for org in organizations],
+            message="Organizations retrieved successfully"
+        )
+    except Exception as e:
+        return error_response(str(e), 500)
+
+@auth_bp.route('/public/organizations', methods=['POST'])
+def create_public_organization():
+    """Create new organization (public endpoint for initial setup)."""
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response("No data provided", 400)
+        
+        required_fields = ['name', 'description', 'contact_email']
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f"{field} is required", 400)
+        
+        from models.organisation import create_organisation
+        org = create_organisation(data)
+        return success_response(
+            data={
+                "org_id": org.org_id,
+                "name": org.name,
+                "description": org.description,
+                "contact_email": org.contact_email
+            },
+            message="Organization created successfully",
+            status_code=201
+        )
+    except Exception as e:
+        return error_response(str(e), 400)
+
+@auth_bp.route('/public/admin', methods=['POST'])
+def create_public_admin():
+    """Create first admin user for an organization (public endpoint)."""
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response("No data provided", 400)
+        
+        required_fields = ['name', 'email', 'password', 'org_id']
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f"{field} is required", 400)
+        
+        # Verify organization exists
+        from models.organisation import find_organisation_by_id
+        org = find_organisation_by_id(data['org_id'])
+        if not org:
+            return error_response("Organization not found", 404)
+        
+        # Check if organization already has an admin
+        from models.user import get_users_by_role
+        existing_admins = get_users_by_role('admin', data['org_id'])
+        if existing_admins:
+            return error_response("Organization already has an admin. Use regular registration.", 400)
+        
+        # Set role to admin
+        data['role'] = 'admin'
+        
+        # Validate input data  
+        validation = validate_user_data(data)
+        if not validation['is_valid']:
+            return validation_error_response(validation['errors'])
+        
+        user = register_user(data)
+        return success_response(
+            data=user.to_dict(),
+            message="Admin user created successfully",
+            status_code=201
+        )
     except Exception as e:
         return error_response(str(e), 400)
