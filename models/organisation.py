@@ -183,31 +183,38 @@ def delete_organisation(org_id):
         users_count = db.session.query(User).filter(User.org_id == org_id).count()
         sessions_count = db.session.query(AttendanceSession).filter(AttendanceSession.org_id == org_id).count()
         
-        # Get attendance records count (through sessions)
-        records_count = db.session.query(AttendanceRecord).join(
-            AttendanceSession, AttendanceRecord.session_id == AttendanceSession.session_id
-        ).filter(AttendanceSession.org_id == org_id).count()
+        # Get attendance records count (get session IDs first, then count records)
+        session_ids = [s.session_id for s in db.session.query(AttendanceSession).filter(AttendanceSession.org_id == org_id).all()]
+        records_count = 0
+        if session_ids:
+            records_count = db.session.query(AttendanceRecord).filter(AttendanceRecord.session_id.in_(session_ids)).count()
         
         # Delete in proper order to avoid foreign key constraint violations
         
-        # 1. Delete attendance records first
-        attendance_records_deleted = db.session.query(AttendanceRecord).join(
-            AttendanceSession, AttendanceRecord.session_id == AttendanceSession.session_id
-        ).filter(AttendanceSession.org_id == org_id).delete(synchronize_session=False)
+        # 1. Delete attendance records first (get session IDs, then delete records)
+        session_ids = [s.session_id for s in db.session.query(AttendanceSession).filter(AttendanceSession.org_id == org_id).all()]
+        attendance_records_deleted = 0
+        if session_ids:
+            attendance_records_deleted = db.session.query(AttendanceRecord).filter(
+                AttendanceRecord.session_id.in_(session_ids)
+            ).delete(synchronize_session=False)
         
         # 2. Delete attendance sessions
         sessions_deleted = db.session.query(AttendanceSession).filter(
             AttendanceSession.org_id == org_id
         ).delete(synchronize_session=False)
         
-        # 3. Delete user sessions
+        # 3. Delete user sessions (get user IDs, then delete sessions)
         from models.session import UserSession
-        user_sessions_deleted = db.session.query(UserSession).join(
-            User, UserSession.user_id == User.user_id
-        ).filter(User.org_id == org_id).delete(synchronize_session=False)
+        user_ids = [u.user_id for u in db.session.query(User).filter(User.org_id == org_id).all()]
+        user_sessions_deleted = 0
+        if user_ids:
+            user_sessions_deleted = db.session.query(UserSession).filter(
+                UserSession.user_id.in_(user_ids)
+            ).delete(synchronize_session=False)
         
         # 4. Delete users
-        users_deleted = db.session.query(User).filter(User.org_id == org_id).delete()
+        users_deleted = db.session.query(User).filter(User.org_id == org_id).delete(synchronize_session=False)
         
         # 5. Finally delete the organization
         db.session.delete(org)

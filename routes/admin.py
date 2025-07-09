@@ -451,9 +451,12 @@ def delete_organization(org_id):
             # Count what will be deleted
             users_count = User.query.filter(User.org_id == org_id).count()
             sessions_count = AttendanceSession.query.filter(AttendanceSession.org_id == org_id).count()
-            records_count = db.session.query(AttendanceRecord).join(
-                AttendanceSession, AttendanceRecord.session_id == AttendanceSession.session_id
-            ).filter(AttendanceSession.org_id == org_id).count()
+            
+            # Count attendance records (get session IDs first, then count records)
+            session_ids = [s.session_id for s in AttendanceSession.query.filter(AttendanceSession.org_id == org_id).all()]
+            records_count = 0
+            if session_ids:
+                records_count = AttendanceRecord.query.filter(AttendanceRecord.session_id.in_(session_ids)).count()
             
             return success_response(
                 data={
