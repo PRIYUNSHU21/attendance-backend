@@ -181,15 +181,31 @@ def create_app(config_name=None):
 
     @app.errorhandler(500)
     def internal_error(error):
+        import logging
+        logging.error(f"Internal server error: {str(error)}")
         return error_response(
             message='Internal server error',
             status_code=500
         )
 
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        import logging
+        logging.error(f"Unhandled exception: {str(error)}")
+        return error_response(
+            message='An unexpected error occurred',
+            status_code=500
+        )
+
     return app
 
-# Create the app instance
-app = create_app()
+# Create the app instance with error handling
+try:
+    app = create_app()
+except Exception as e:
+    import logging
+    logging.error(f"Failed to create app: {str(e)}")
+    raise
 
 if __name__ == '__main__':
     from datetime import datetime
