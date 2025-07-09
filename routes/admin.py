@@ -290,6 +290,7 @@ def get_user(user_id):
         return error_response(str(e), 500)
 
 @admin_bp.route('/users/<user_id>', methods=['PUT'])
+@token_required
 @admin_required
 def update_user_info(user_id):
     """Update a user's information."""
@@ -315,6 +316,7 @@ def update_user_info(user_id):
         return error_response(str(e), 400)
 
 @admin_bp.route('/users/<user_id>', methods=['DELETE'])
+@token_required
 @admin_required
 def delete_user_account(user_id):
     """Soft delete a user account."""
@@ -345,6 +347,7 @@ def get_organizations():
         return error_response(str(e), 500)
 
 @admin_bp.route('/organizations', methods=['POST'])
+@token_required
 @admin_required
 def create_new_organization():
     """Create a new organization."""
@@ -363,6 +366,7 @@ def create_new_organization():
         return error_response(str(e), 400)
 
 @admin_bp.route('/organizations/<org_id>', methods=['GET'])
+@token_required
 @admin_required
 def get_organization(org_id):
     """Get organization details."""
@@ -379,6 +383,7 @@ def get_organization(org_id):
         return error_response(str(e), 500)
 
 @admin_bp.route('/organizations/<org_id>', methods=['PUT'])
+@token_required
 @admin_required
 def update_organization_info(org_id):
     """Update organization information."""
