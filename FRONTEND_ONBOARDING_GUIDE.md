@@ -298,7 +298,10 @@ All endpoints have been tested and verified working! ✅
 4. Login with newly created admins
 5. Handle all error cases appropriately
 
-**🔗 Base URL:** `http://127.0.0.1:5000` (development)
+**🔗 Base URLs:** 
+- **Production:** `https://attendance-backend-go8h.onrender.com`
+- **Development:** `http://127.0.0.1:5000`
+
 **📱 All endpoints support CORS** for frontend integration
 
 The backend is **100% ready** for frontend onboarding! 🚀
