@@ -25,6 +25,8 @@ GET /admin/organizations - List all organizations (Super admin only)
 POST /admin/organizations - Create new organization
 GET /admin/organizations/<org_id> - Get organization details
 PUT /admin/organizations/<org_id> - Update organization information
+DELETE /admin/organizations/<org_id> - Delete organization and all related data (DANGEROUS!)
+PUT /admin/organizations/<org_id>/soft-delete - Deactivate organization (safer alternative)
 
 📅 SESSION MANAGEMENT (Teacher/Admin access):
 POST /admin/sessions - Create new attendance session
@@ -185,6 +187,7 @@ from flask import Blueprint, request, jsonify
 from services.attendance_service import create_session
 from models.user import create_user, find_user_by_id, update_user, delete_user, get_users_by_org, get_users_by_role
 from models.organisation import create_organisation, find_organisation_by_id, update_organisation, get_all_organisations
+from config.db import db
 from models.attendance import get_active_sessions
 from utils.auth import token_required, admin_required, teacher_or_admin_required, get_current_user
 from utils.response import success_response, error_response, validation_error_response, paginated_response
@@ -402,6 +405,118 @@ def update_organization_info(org_id):
         )
     except Exception as e:
         return error_response(str(e), 400)
+
+@admin_bp.route('/organizations/<org_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_organization(org_id):
+    """
+    Delete an organization and all related data.
+    
+    ⚠️ DANGEROUS OPERATION: This permanently deletes:
+    - The organization
+    - All users in the organization
+    - All attendance sessions and records
+    
+    Security: Only organization admins can delete their own organization.
+    """
+    try:
+        # Get current user info
+        current_user = get_current_user()
+        user_org_id = current_user.get('org_id')
+        user_role = current_user.get('role')
+        
+        # Security check: Admin can only delete their own organization
+        # (unless they're a super admin - future feature)
+        if org_id != user_org_id:
+            return error_response(
+                "You can only delete your own organization", 
+                403
+            )
+        
+        # Optional: Add confirmation parameter
+        data = request.get_json() if request.get_json() else {}
+        confirm_deletion = data.get('confirm_deletion', False)
+        
+        if not confirm_deletion:
+            # Return preview of what will be deleted
+            from models.organisation import find_organisation_by_id
+            from models.user import User
+            from models.attendance import AttendanceSession, AttendanceRecord
+            
+            org = find_organisation_by_id(org_id)
+            if not org:
+                return error_response("Organization not found", 404)
+            
+            # Count what will be deleted
+            users_count = User.query.filter(User.org_id == org_id).count()
+            sessions_count = AttendanceSession.query.filter(AttendanceSession.org_id == org_id).count()
+            records_count = db.session.query(AttendanceRecord).join(
+                AttendanceSession, AttendanceRecord.session_id == AttendanceSession.session_id
+            ).filter(AttendanceSession.org_id == org_id).count()
+            
+            return success_response(
+                data={
+                    "organization": org.to_dict(),
+                    "deletion_preview": {
+                        "users_to_delete": users_count,
+                        "sessions_to_delete": sessions_count,
+                        "attendance_records_to_delete": records_count
+                    },
+                    "warning": "This action cannot be undone!"
+                },
+                message="Deletion preview. Send 'confirm_deletion': true to proceed."
+            )
+        
+        # Perform the actual deletion
+        from models.organisation import delete_organisation
+        result = delete_organisation(org_id)
+        
+        if result["success"]:
+            return success_response(
+                data=result["deleted_counts"],
+                message=result["message"]
+            )
+        else:
+            return error_response(result["message"], 404)
+            
+    except Exception as e:
+        return error_response(f"Failed to delete organization: {str(e)}", 500)
+
+@admin_bp.route('/organizations/<org_id>/soft-delete', methods=['PUT'])
+@token_required
+@admin_required
+def soft_delete_organization(org_id):
+    """
+    Soft delete an organization (mark as inactive).
+    
+    This is a safer alternative that preserves data.
+    """
+    try:
+        # Get current user info
+        current_user = get_current_user()
+        user_org_id = current_user.get('org_id')
+        
+        # Security check: Admin can only soft-delete their own organization
+        if org_id != user_org_id:
+            return error_response(
+                "You can only deactivate your own organization", 
+                403
+            )
+        
+        from models.organisation import soft_delete_organisation
+        org = soft_delete_organisation(org_id)
+        
+        if not org:
+            return error_response("Organization not found", 404)
+        
+        return success_response(
+            data=org.to_dict(),
+            message="Organization deactivated successfully. Data preserved."
+        )
+        
+    except Exception as e:
+        return error_response(f"Failed to deactivate organization: {str(e)}", 500)
 
 # Session Management Routes
 @admin_bp.route('/sessions', methods=['POST'])

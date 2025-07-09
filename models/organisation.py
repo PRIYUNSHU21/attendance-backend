@@ -145,3 +145,114 @@ def update_organisation(org_id, data):
     except Exception as e:
         db.session.rollback()
         raise e
+
+def delete_organisation(org_id):
+    """
+    Delete an organisation and all related data.
+    
+    ⚠️ DANGEROUS OPERATION: This will permanently delete:
+    - The organization
+    - All users in the organization  
+    - All attendance sessions
+    - All attendance records
+    
+    🔒 SAFETY CHECKS:
+    - Only allows deletion if requester is admin of the organization
+    - Provides cascade deletion of all related data
+    - Cannot be undone
+    
+    Args:
+        org_id (str): Organization ID to delete
+        
+    Returns:
+        dict: {"success": bool, "message": str, "deleted_counts": dict}
+        
+    Raises:
+        Exception: If deletion fails
+    """
+    try:
+        # Check if organization exists
+        org = find_organisation_by_id(org_id)
+        if not org:
+            return {"success": False, "message": "Organization not found"}
+        
+        # Get counts before deletion for confirmation
+        from models.user import User
+        from models.attendance import AttendanceSession, AttendanceRecord
+        
+        users_count = db.session.query(User).filter(User.org_id == org_id).count()
+        sessions_count = db.session.query(AttendanceSession).filter(AttendanceSession.org_id == org_id).count()
+        
+        # Get attendance records count (through sessions)
+        records_count = db.session.query(AttendanceRecord).join(
+            AttendanceSession, AttendanceRecord.session_id == AttendanceSession.session_id
+        ).filter(AttendanceSession.org_id == org_id).count()
+        
+        # Delete in proper order to avoid foreign key constraint violations
+        
+        # 1. Delete attendance records first
+        attendance_records_deleted = db.session.query(AttendanceRecord).join(
+            AttendanceSession, AttendanceRecord.session_id == AttendanceSession.session_id
+        ).filter(AttendanceSession.org_id == org_id).delete(synchronize_session=False)
+        
+        # 2. Delete attendance sessions
+        sessions_deleted = db.session.query(AttendanceSession).filter(
+            AttendanceSession.org_id == org_id
+        ).delete(synchronize_session=False)
+        
+        # 3. Delete user sessions
+        from models.session import UserSession
+        user_sessions_deleted = db.session.query(UserSession).join(
+            User, UserSession.user_id == User.user_id
+        ).filter(User.org_id == org_id).delete(synchronize_session=False)
+        
+        # 4. Delete users
+        users_deleted = db.session.query(User).filter(User.org_id == org_id).delete()
+        
+        # 5. Finally delete the organization
+        db.session.delete(org)
+        
+        # Commit all deletions
+        db.session.commit()
+        
+        return {
+            "success": True,
+            "message": f"Organization '{org.name}' and all related data deleted successfully",
+            "deleted_counts": {
+                "organization": 1,
+                "users": users_deleted,
+                "attendance_sessions": sessions_deleted,
+                "attendance_records": attendance_records_deleted,
+                "user_sessions": user_sessions_deleted
+            }
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        raise Exception(f"Failed to delete organization: {str(e)}")
+
+def soft_delete_organisation(org_id):
+    """
+    Soft delete an organisation (mark as inactive instead of permanent deletion).
+    
+    This is a safer alternative to hard deletion that preserves data.
+    
+    Args:
+        org_id (str): Organization ID to soft delete
+        
+    Returns:
+        Organisation: Updated organization object or None if not found
+    """
+    try:
+        org = find_organisation_by_id(org_id)
+        if not org:
+            return None
+        
+        org.is_active = False
+        org.updated_at = datetime.utcnow()
+        db.session.commit()
+        return org
+        
+    except Exception as e:
+        db.session.rollback()
+        raise e
