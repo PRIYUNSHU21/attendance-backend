@@ -133,6 +133,89 @@ const softDeleteOrganization = async (orgId, adminToken) => {
 
 ---
 
+## 🔒 **NEW SECURITY ENHANCEMENTS** ⭐
+
+### **🚨 IMPORTANT SECURITY UPDATE**
+**As of July 9, 2025**, the backend has implemented critical security enhancements in response to frontend team recommendations:
+
+#### **✅ What's New:**
+1. **🔐 Session Invalidation**: All user sessions are automatically invalidated when an organization is deleted or deactivated
+2. **🛡️ Enhanced JWT Validation**: Tokens are validated against organization existence in real-time
+3. **📝 Audit Trail**: All session invalidations are logged for security monitoring
+4. **🚫 Session Blacklisting**: Invalidated sessions cannot be reused
+
+#### **🔒 Security Flow:**
+```mermaid
+graph TD
+    A[Admin Deletes Organization] --> B[Backend Invalidates All User Sessions]
+    B --> C[Sessions Added to Blacklist]
+    C --> D[JWT Validation Enhanced]
+    D --> E[Future Requests with Old Tokens Rejected]
+```
+
+#### **📊 Updated Response Format:**
+Organization deletion now returns additional security information:
+
+```javascript
+// NEW: Enhanced deletion response
+{
+  "success": true,
+  "data": {
+    "organization": 1,
+    "users": 25,
+    "attendance_sessions": 12,
+    "attendance_records": 150,
+    "user_sessions": 30,
+    "invalidated_sessions": 30  // ← NEW: Sessions invalidated
+  },
+  "message": "Organization deleted and all user sessions invalidated"
+}
+
+// NEW: Enhanced soft-delete response
+{
+  "success": true,
+  "data": {
+    "org_id": "abc-123",
+    "name": "My University",
+    "is_active": false,
+    "updated_at": "2025-07-09T17:15:00Z",
+    "invalidated_sessions": 15  // ← NEW: Sessions invalidated
+  },
+  "message": "Organization deactivated. All user sessions invalidated."
+}
+```
+
+#### **🎯 Impact on Frontend:**
+- **Users from deleted organizations are immediately logged out**
+- **Old JWT tokens become invalid instantly**
+- **No manual session cleanup required**
+- **Enhanced security prevents orphaned access**
+
+#### **⚠️ Important for Frontend Developers:**
+```javascript
+// Handle automatic logout scenarios
+const apiCall = async (endpoint, token) => {
+  try {
+    const response = await fetch(endpoint, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.status === 401) {
+      // Token invalidated (possibly due to org deletion)
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+      alert('Your session has expired. Please log in again.');
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('API call failed:', error);
+  }
+};
+```
+
+---
+
 ## 🔒 **SECURITY & PERMISSIONS**
 
 ### **Who Can Delete Organizations:**
@@ -612,6 +695,10 @@ Before deploying, test these scenarios:
 - [ ] Admin cannot delete other organizations
 - [ ] Invalid tokens are rejected
 - [ ] Expired tokens are rejected
+- [ ] **🔐 NEW: Sessions invalidated on organization deletion**
+- [ ] **🔐 NEW: Sessions invalidated on organization soft-delete**
+- [ ] **🔐 NEW: Old tokens rejected after organization deletion**
+- [ ] **🔐 NEW: JWT validation includes organization existence check**
 
 ### **✅ Error Cases:**
 - [ ] Non-existent organization returns 404
