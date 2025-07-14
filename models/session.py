@@ -15,7 +15,7 @@ class UserSession(db.Model):
     __tablename__ = 'user_sessions'
     
     session_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
     session_token = db.Column(db.String(255), unique=True, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -47,8 +47,8 @@ class InvalidatedSession(db.Model):
     __tablename__ = 'invalidated_sessions'
     
     session_id = db.Column(db.String(255), primary_key=True)
-    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
-    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id'), nullable=False)
     session_token = db.Column(db.String(255), nullable=False)
     invalidated_at = db.Column(db.DateTime, default=datetime.utcnow)
     reason = db.Column(db.String(255), nullable=False)
