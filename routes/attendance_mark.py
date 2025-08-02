@@ -176,10 +176,16 @@ from datetime import datetime
 
 attendance_bp = Blueprint('attendance', __name__)
 
-@attendance_bp.route('/check-in', methods=['POST'])
-@token_required
+@attendance_bp.route('/check-in', methods=['POST', 'GET'])
+@token_required  
 def check_in():
     """Mark attendance check-in for a user."""
+    if request.method == 'GET':
+        return error_response(
+            message="Use POST method to check in. GET is not supported for check-in.",
+            status_code=405
+        )
+    
     try:
         data = request.get_json()
         if not data:

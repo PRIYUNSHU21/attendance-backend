@@ -156,9 +156,15 @@ from utils.validators import validate_user_data
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['POST', 'GET'])
 def login():
     """User login endpoint."""
+    if request.method == 'GET':
+        return error_response(
+            message="Use POST method to login. GET is not supported for login.",
+            status_code=405
+        )
+    
     try:
         data = request.get_json()
         if not data:
