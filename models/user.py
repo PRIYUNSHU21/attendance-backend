@@ -1,38 +1,77 @@
-# models/user.py
 """
-User model module for handling user-related operations.
-This module provides functions to manage users in an in-memory database.
-It includes functionality to create users and search for them by email.
-The module uses uuid to generate unique identifiers for users:
-- uuid (Universally Unique Identifier) creates random, unique IDs 
-- uuid4() specifically generates random UUIDs to ensure each user 
-    has a unique identifier without needing a centralized ID system
-- These UUIDs are converted to strings for storage as user_id
-The module maintains a simple in-memory database (USERS_DB) to store
-user records with fields for identification, authentication, and 
-organizational information.
+👤 USER MODEL - models/user.py
+
+🎯 WHAT THIS FILE DOES:
+This file defines the User model for the database.
+Users are individuals who access the system with different roles.
+
+🔧 DATABASE STRUCTURE:
+- user_id: Primary key (UUID)
+- name: User's full name
+- email: User's email address (unique)
+- password_hash: Securely stored password hash
+- role: User's role (student, teacher, admin)
+- org_id: Organization the user belongs to
+
+📋 AVAILABLE METHODS:
+- to_dict(): Convert user to dictionary for API responses
+- find_by_email(): Find user by email address
+- find_by_id(): Find user by ID
+- get_users_by_org(): Get all users in an organization
 """
 
 import uuid
+from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+from config.db import db
 
-USERS_DB = []
+class User(db.Model):
+    """Model for users in the system."""
+    __tablename__ = 'users'
+    
+    user_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False, unique=True)
+    password_hash = db.Column(db.String(256), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # student, teacher, admin
+    org_id = db.Column(db.String(36), db.ForeignKey('organizations.org_id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    organization = db.relationship('Organisation', backref=db.backref('users', lazy=True))
+    attendance_records = db.relationship('AttendanceRecord', backref='user', lazy=True, cascade="all, delete-orphan")
+    sessions = db.relationship('UserSession', backref='user', lazy=True, cascade="all, delete-orphan")
+    
+    def to_dict(self):
+        """Convert user object to dictionary."""
+        return {
+            'user_id': self.user_id,
+            'name': self.name,
+            'email': self.email,
+            'role': self.role,
+            'org_id': self.org_id,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
 
-def find_user_by_email(email):
-    """Find a user by their email."""
-    for user in USERS_DB:
-        if user['email'] == email:
-            return user
-    return None
+    @staticmethod
+    def find_by_email(email):
+        """Find a user by their email."""
+        return User.query.filter_by(email=email, is_active=True).first()
 
-def create_user(data):
-    """Create a new user."""
-    user = {
-        "user_id": str(uuid.uuid4()),
-        "name": data["name"],
-        "email": data["email"],
-        "password_hash": data["password_hash"],
-        "role": data["role"],
-        "org_id": data["org_id"]
-    }
-    USERS_DB.append(user)
-    return user
+    @staticmethod
+    def find_by_id(user_id):
+        """Find a user by their ID."""
+        return User.query.filter_by(user_id=user_id, is_active=True).first()
+
+    @staticmethod
+    def get_users_by_org(org_id, role=None, page=1, per_page=20):
+        """Get all users in an organization."""
+        query = User.query.filter_by(org_id=org_id, is_active=True)
+        
+        if role:
+            query = query.filter_by(role=role)
+            
+        return query.paginate(page=page, per_page=per_page)
