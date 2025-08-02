@@ -212,6 +212,9 @@ def check_in():
         from models.attendance import mark_attendance
         record = mark_attendance(session_id, user_id, current_user.get('org_id'), lat, lon, current_user.get('user_id'))
         
+        if not record:
+            return error_response("Failed to create attendance record", 400)
+        
         return success_response(
             data={
                 'record_id': record.record_id,
