@@ -328,6 +328,35 @@ def get_active_sessions():
     except Exception as e:
         return error_response(str(e), 500)
 
+@attendance_bp.route('/public-sessions', methods=['GET'])
+def get_public_active_sessions():
+    """Public endpoint to check active sessions (for testing)."""
+    try:
+        from models.attendance import AttendanceSession
+        from utils.response import success_response, error_response
+        
+        # Get ALL active sessions across all organizations
+        sessions = AttendanceSession.query.filter_by(is_active=True).all()
+        
+        session_data = []
+        for session in sessions:
+            session_data.append({
+                'session_id': session.session_id,
+                'session_name': session.session_name,
+                'org_id': session.org_id,
+                'start_time': session.start_time.isoformat() if session.start_time else None,
+                'end_time': session.end_time.isoformat() if session.end_time else None,
+                'created_by': session.created_by,
+                'is_active': session.is_active
+            })
+        
+        return success_response(
+            data=session_data,
+            message=f"Found {len(session_data)} active sessions"
+        )
+    except Exception as e:
+        return error_response(str(e), 500)
+
 @attendance_bp.route('/session/<session_id>/attendance', methods=['GET'])
 @teacher_or_admin_required
 def get_session_attendance(session_id):

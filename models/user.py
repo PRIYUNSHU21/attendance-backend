@@ -34,14 +34,14 @@ class User(db.Model):
     email = db.Column(db.String(100), nullable=False, unique=True)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # student, teacher, admin
-    org_id = db.Column(db.String(36), db.ForeignKey('organizations.org_id'), nullable=False)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
     # Relationships
     organization = db.relationship('Organisation', backref=db.backref('users', lazy=True))
-    attendance_records = db.relationship('AttendanceRecord', backref='user', lazy=True, cascade="all, delete-orphan")
+    attendance_records = db.relationship('AttendanceRecord', foreign_keys='AttendanceRecord.user_id', backref='user', lazy=True, cascade="all, delete-orphan")
     sessions = db.relationship('UserSession', backref='user', lazy=True, cascade="all, delete-orphan")
     
     def to_dict(self):
