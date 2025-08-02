@@ -202,8 +202,9 @@ def check_in():
         if not session_id:
             return error_response("Session ID is required", 400)
         
-        # Mark attendance
-        record = mark_user_attendance(session_id, user_id, lat, lon, force)
+        # Mark attendance using the correct function
+        from models.attendance import mark_attendance
+        record = mark_attendance(session_id, user_id, current_user.get('org_id'), lat, lon, current_user.get('user_id'))
         
         return success_response(
             data={
@@ -211,11 +212,11 @@ def check_in():
                 'user_id': user_id,
                 'session_id': session_id,
                 'check_in_time': record.check_in_time.isoformat(),
-                'status': record.status,
+                'status': 'present',
                 'location': {
-                    'lat': record.check_in_lat,
-                    'lon': record.check_in_lon
-                } if record.check_in_lat and record.check_in_lon else None
+                    'lat': record.check_in_latitude,
+                    'lon': record.check_in_longitude
+                } if record.check_in_latitude and record.check_in_longitude else None
             },
             message="Check-in successful"
         )
@@ -355,6 +356,40 @@ def get_public_active_sessions():
         return success_response(
             data=session_data,
             message=f"Found {len(session_data)} active sessions"
+        )
+    except Exception as e:
+        return error_response(str(e), 500)
+
+@attendance_bp.route('/sessions/<session_id>', methods=['GET'])
+def get_session_details(session_id):
+    """Get details of a specific session (public endpoint)."""
+    try:
+        from config.db import db
+        from utils.response import success_response, error_response
+        
+        # Get session details using raw SQL to avoid schema issues
+        session = db.session.execute(
+            db.text("SELECT session_id, session_name, description, org_id, start_time, end_time, created_by, is_active FROM attendance_sessions WHERE session_id = :session_id"),
+            {"session_id": session_id}
+        ).fetchone()
+        
+        if not session:
+            return error_response("Session not found", 404)
+        
+        session_data = {
+            'session_id': session[0],
+            'session_name': session[1], 
+            'description': session[2],
+            'org_id': session[3],
+            'start_time': session[4].isoformat() if session[4] else None,
+            'end_time': session[5].isoformat() if session[5] else None,
+            'created_by': session[6],
+            'is_active': session[7]
+        }
+        
+        return success_response(
+            data=session_data,
+            message="Session details retrieved successfully"
         )
     except Exception as e:
         return error_response(str(e), 500)
