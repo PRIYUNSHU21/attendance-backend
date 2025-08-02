@@ -85,6 +85,8 @@ class AttendanceRecord(db.Model):
     # Location verification
     check_in_latitude = db.Column(db.Float)
     check_in_longitude = db.Column(db.Float)
+    check_out_latitude = db.Column(db.Float)
+    check_out_longitude = db.Column(db.Float)
     location_verified = db.Column(db.Boolean, default=False)
     
     # Metadata
@@ -104,6 +106,8 @@ class AttendanceRecord(db.Model):
             'check_out_time': self.check_out_time.isoformat() if self.check_out_time else None,
             'check_in_latitude': self.check_in_latitude,
             'check_in_longitude': self.check_in_longitude,
+            'check_out_latitude': self.check_out_latitude,
+            'check_out_longitude': self.check_out_longitude,
             'location_verified': self.location_verified,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -264,5 +268,43 @@ def create_session_model(data):
         
     except Exception as e:
         print(f"DEBUG: Error creating attendance session: {str(e)}")
+        db.session.rollback()
+        return None
+
+def mark_checkout(session_id, user_id, latitude=None, longitude=None):
+    """
+    Mark checkout for a user in a session.
+    
+    Args:
+        session_id: Session ID
+        user_id: User ID
+        latitude: Checkout latitude
+        longitude: Checkout longitude
+        
+    Returns:
+        AttendanceRecord object or None
+    """
+    try:
+        # Find existing attendance record
+        record = AttendanceRecord.query.filter(
+            AttendanceRecord.session_id == session_id,
+            AttendanceRecord.user_id == user_id
+        ).first()
+        
+        if not record:
+            print(f"No attendance record found for user {user_id} in session {session_id}")
+            return None
+        
+        # Update checkout information
+        record.check_out_time = datetime.now()
+        if latitude and longitude:
+            record.check_out_latitude = latitude
+            record.check_out_longitude = longitude
+        
+        db.session.commit()
+        return record
+        
+    except Exception as e:
+        print(f"Error marking checkout: {str(e)}")
         db.session.rollback()
         return None

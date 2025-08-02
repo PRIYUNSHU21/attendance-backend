@@ -98,7 +98,7 @@ from models.attendance import (
     create_session_model as create_attendance_session, mark_attendance, mark_checkout,
     get_session_attendance, get_user_attendance, get_active_sessions
 )
-from models.user import find_user_by_id
+from models.user import User
 from services.geo_service import is_within_geofence, validate_coordinates
 from config.settings import Config
 
@@ -184,7 +184,7 @@ def mark_user_attendance(session_id, user_id, lat=None, lon=None, force=False):
         raise Exception("Session has already ended")
     
     # Validate user
-    user = find_user_by_id(user_id)
+    user = User.find_by_id(user_id)
     if not user:
         raise Exception("User not found")
     
