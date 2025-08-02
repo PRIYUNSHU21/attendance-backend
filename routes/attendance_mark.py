@@ -332,22 +332,24 @@ def get_active_sessions():
 def get_public_active_sessions():
     """Public endpoint to check active sessions (for testing)."""
     try:
-        from models.attendance import AttendanceSession
+        from config.db import db
         from utils.response import success_response, error_response
         
-        # Get ALL active sessions across all organizations
-        sessions = AttendanceSession.query.filter_by(is_active=True).all()
+        # Get ALL active sessions across all organizations (only basic fields)
+        sessions = db.session.execute(
+            db.text("SELECT session_id, session_name, org_id, start_time, end_time, created_by, is_active FROM attendance_sessions WHERE is_active = true")
+        ).fetchall()
         
         session_data = []
         for session in sessions:
             session_data.append({
-                'session_id': session.session_id,
-                'session_name': session.session_name,
-                'org_id': session.org_id,
-                'start_time': session.start_time.isoformat() if session.start_time else None,
-                'end_time': session.end_time.isoformat() if session.end_time else None,
-                'created_by': session.created_by,
-                'is_active': session.is_active
+                'session_id': session[0],
+                'session_name': session[1],
+                'org_id': session[2],
+                'start_time': session[3].isoformat() if session[3] else None,
+                'end_time': session[4].isoformat() if session[4] else None,
+                'created_by': session[5],
+                'is_active': session[6]
             })
         
         return success_response(
