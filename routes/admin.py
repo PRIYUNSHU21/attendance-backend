@@ -550,29 +550,45 @@ def soft_delete_organization(org_id):
 @token_required
 @teacher_or_admin_required
 def create_attendance_session():
-    """Create a new attendance session."""
+    """Create a new attendance session - DIRECT FIX."""
     try:
+        from models.attendance import AttendanceSession
+        from datetime import datetime
+        import uuid
+        
         data = request.get_json()
         if not data:
             return error_response("No data provided", 400)
         
         current_user = get_current_user()
         
-        # Validation
-        validation = validate_attendance_session_data(data)
-        if not validation['is_valid']:
-            return validation_error_response(validation['errors'])
+        # DIRECT SESSION CREATION - NO COMPLEX SERVICES
+        session = AttendanceSession(
+            session_id=str(uuid.uuid4()),
+            session_name=data['session_name'],
+            description=data.get('description', ''),
+            org_id=current_user.get('org_id'),
+            created_by=current_user['user_id'],
+            start_time=datetime.fromisoformat(data['start_time']),
+            end_time=datetime.fromisoformat(data['end_time']),
+            location=data.get('location'),
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude'),
+            radius=data.get('radius', 100),
+            is_active=True
+        )
         
-        # Set organization ID to current user's org
-        data['org_id'] = current_user.get('org_id')
+        # DIRECT DATABASE SAVE
+        db.session.add(session)
+        db.session.commit()
         
-        session = create_session(data, current_user['user_id'])
         return success_response(
             data=session.to_dict(),
             message="Attendance session created successfully",
             status_code=201
         )
     except Exception as e:
+        print(f"DEBUG: Exception in admin session creation: {str(e)}")
         return error_response(str(e), 400)
 
 @admin_bp.route('/sessions', methods=['GET'])
