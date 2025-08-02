@@ -75,3 +75,60 @@ class User(db.Model):
             query = query.filter_by(role=role)
             
         return query.paginate(page=page, per_page=per_page)
+
+# Additional helper functions for backward compatibility
+def create_user(data):
+    """Create a new user (compatibility function)."""
+    user = User(
+        name=data["name"],
+        email=data["email"],
+        password_hash=data["password_hash"],
+        role=data["role"],
+        org_id=data["org_id"]
+    )
+    
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+def find_user_by_id(user_id):
+    """Find a user by their ID (compatibility function)."""
+    return User.find_by_id(user_id)
+
+def update_user(user_id, data):
+    """Update a user (compatibility function)."""
+    user = User.find_by_id(user_id)
+    if not user:
+        return None
+    
+    for key, value in data.items():
+        if hasattr(user, key) and key != 'user_id':
+            setattr(user, key, value)
+    
+    db.session.commit()
+    return user
+
+def delete_user(user_id):
+    """Soft delete a user (compatibility function)."""
+    user = User.find_by_id(user_id)
+    if not user:
+        return None
+    
+    user.is_active = False
+    db.session.commit()
+    return user
+
+def get_users_by_org(org_id, page=1, per_page=20):
+    """Get all users in an organization (compatibility function)."""
+    result = User.get_users_by_org(org_id, page=page, per_page=per_page)
+    return result.items
+
+def get_users_by_role(role, org_id=None, page=1, per_page=20):
+    """Get users by role (compatibility function)."""
+    query = User.query.filter_by(role=role, is_active=True)
+    
+    if org_id:
+        query = query.filter_by(org_id=org_id)
+    
+    result = query.paginate(page=page, per_page=per_page)
+    return result.items
