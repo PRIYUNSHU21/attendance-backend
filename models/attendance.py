@@ -36,6 +36,7 @@ class AttendanceSession(db.Model):
     end_time = db.Column(db.DateTime, nullable=False)
     
     # Location data for geo-fencing (optional fields for backward compatibility)
+    location = db.Column(db.String(500))  # Legacy location field - exists in DB
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float) 
     radius = db.Column(db.Integer, default=100)  # meters
@@ -55,6 +56,7 @@ class AttendanceSession(db.Model):
             'org_id': self.org_id,
             'start_time': self.start_time.isoformat() if self.start_time else None,
             'end_time': self.end_time.isoformat() if self.end_time else None,
+            'location': self.location,  # Include legacy location field
             'latitude': self.latitude,
             'longitude': self.longitude,
             'radius': self.radius,
