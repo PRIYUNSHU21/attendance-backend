@@ -75,10 +75,11 @@ const response = await fetch('/attendance/check-in', {
 });
 """
 
-from models.user import find_user_by_email, create_user
+from models.user import User
 from models.session import create_session, validate_session, invalidate_session
 from services.hash_service import hash_password, verify_password
 from utils.auth import generate_token
+from config.db import db
 import secrets
 import uuid
 
@@ -98,7 +99,7 @@ def login_user(email, password, device_info=None, ip_address=None):
     Raises:
         Exception: If authentication fails
     """
-    user = find_user_by_email(email)
+    user = User.find_by_email(email)
     if not user:
         raise Exception("User not found")
 
@@ -146,16 +147,25 @@ def register_user(data):
         Exception: If registration fails
     """
     # Check if user already exists
-    existing_user = find_user_by_email(data["email"])
+    existing_user = User.find_by_email(data["email"])
     if existing_user:
         raise Exception("User with this email already exists")
     
     # Hash the password
-    data["password_hash"] = hash_password(data["password"])
-    del data["password"]  # Remove plain password from data
+    password_hash = hash_password(data["password"])
     
-    # Create user
-    return create_user(data)
+    # Create user using SQLAlchemy
+    user = User(
+        name=data["name"],
+        email=data["email"],
+        password_hash=password_hash,
+        role=data["role"],
+        org_id=data["org_id"]
+    )
+    
+    db.session.add(user)
+    db.session.commit()
+    return user
 
 def logout_user(session_token):
     """
