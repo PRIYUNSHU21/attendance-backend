@@ -193,15 +193,15 @@ def mark_user_attendance(session_id, user_id, lat=None, lon=None, force=False):
         raise Exception("User does not belong to this organization")
     
     # Location validation if required
-    if not force and session.latitude and session.longitude:
+    if not force and session.location_lat and session.location_lon:
         if not lat or not lon:
             raise Exception("Location coordinates are required")
         
         if not validate_coordinates(lat, lon):
             raise Exception("Invalid coordinates")
         
-        if not is_within_geofence(lat, lon, session.latitude, 
-                                 session.longitude, session.radius):
+        if not is_within_geofence(lat, lon, session.location_lat, 
+                                 session.location_lon, session.location_radius):
             raise Exception("You are not within the allowed location")
     
     # Determine attendance status

@@ -35,10 +35,10 @@ class AttendanceSession(db.Model):
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
     
-    # Location data for geo-fencing
-    latitude = db.Column(db.Float)
-    longitude = db.Column(db.Float) 
-    radius = db.Column(db.Integer, default=100)  # meters
+    # Location data for geo-fencing (production database column names)
+    location_lat = db.Column(db.Float)     # Production has location_lat 
+    location_lon = db.Column(db.Float)     # Production has location_lon
+    location_radius = db.Column(db.Float)  # Production has location_radius
     
     # Session management
     created_by = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
@@ -55,10 +55,9 @@ class AttendanceSession(db.Model):
             'org_id': self.org_id,
             'start_time': self.start_time.isoformat() if self.start_time else None,
             'end_time': self.end_time.isoformat() if self.end_time else None,
-            'location': self.location,  # Include legacy location field
-            'latitude': self.latitude,
-            'longitude': self.longitude,
-            'radius': self.radius,
+            'latitude': self.location_lat,    # Map production column to expected field
+            'longitude': self.location_lon,   # Map production column to expected field
+            'radius': self.location_radius,   # Map production column to expected field
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
