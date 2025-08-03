@@ -40,6 +40,9 @@ def init_db(app):
         # Run schema fix for simple_attendance_records table
         _fix_simple_attendance_records_schema()
         
+        # Force recreate table if schema issues persist
+        _force_recreate_simple_attendance_records_table()
+        
     return db
 
 def _migrate_attendance_sessions_location_columns():
@@ -281,3 +284,131 @@ def _fix_simple_attendance_records_schema():
     except Exception as e:
         print(f"⚠️ Schema fix failed (non-critical): {str(e)}")
         # Don't fail the entire app startup for schema issues
+
+def _force_recreate_simple_attendance_records_table():
+    """Force recreate the simple_attendance_records table with correct schema."""
+    try:
+        engine_name = db.engine.name
+        
+        print("🔧 Force recreating simple_attendance_records table...")
+        
+        if engine_name == 'postgresql':
+            # PostgreSQL force recreation
+            with db.engine.connect() as connection:
+                # Check if table exists
+                result = connection.execute(db.text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'simple_attendance_records'
+                    );
+                """)).fetchone()
+                
+                table_exists = result[0] if result else False
+                
+                if table_exists:
+                    # Get table schema to check if it needs recreation
+                    columns_result = connection.execute(db.text("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name = 'simple_attendance_records' 
+                        AND table_schema = 'public';
+                    """)).fetchall()
+                    
+                    existing_columns = [row[0] for row in columns_result]
+                    
+                    # Check if we have the problematic old schema
+                    has_session_code = 'session_code' in existing_columns
+                    session_id_missing = 'session_id' not in existing_columns
+                    
+                    if has_session_code or session_id_missing:
+                        print("🗑️ Dropping problematic table...")
+                        # Backup any existing data first
+                        try:
+                            connection.execute(db.text("""
+                                CREATE TABLE simple_attendance_records_backup_temp AS 
+                                SELECT * FROM simple_attendance_records LIMIT 0;
+                            """))
+                            connection.commit()
+                        except:
+                            pass  # Backup table creation failed, continue anyway
+                        
+                        # Drop the problematic table
+                        connection.execute(db.text("DROP TABLE IF EXISTS simple_attendance_records CASCADE;"))
+                        connection.commit()
+                        print("✅ Dropped problematic table")
+                        
+                        # Recreate with correct schema
+                        connection.execute(db.text("""
+                            CREATE TABLE simple_attendance_records (
+                                record_id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+                                user_id VARCHAR(36) NOT NULL,
+                                org_id VARCHAR(36) NOT NULL,
+                                session_id VARCHAR(255),
+                                latitude DECIMAL(10,8),
+                                longitude DECIMAL(11,8),
+                                altitude DECIMAL(8,2) DEFAULT 0,
+                                status VARCHAR(20) NOT NULL DEFAULT 'present',
+                                check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                absent_timestamps TEXT,
+                                distance_from_session DECIMAL(10,2),
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            );
+                        """))
+                        connection.commit()
+                        print("✅ Recreated table with correct schema!")
+                    else:
+                        print("✅ Table schema is already correct")
+                        
+        elif engine_name == 'sqlite':
+            # SQLite force recreation  
+            with db.engine.connect() as connection:
+                # Check if table exists
+                result = connection.execute(db.text("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='simple_attendance_records';
+                """)).fetchone()
+                
+                if result:
+                    # Get table schema
+                    columns_result = connection.execute(db.text("PRAGMA table_info(simple_attendance_records)")).fetchall()
+                    existing_columns = [row[1] for row in columns_result]
+                    
+                    # Check if we need to recreate
+                    has_session_code = 'session_code' in existing_columns
+                    session_id_missing = 'session_id' not in existing_columns
+                    
+                    if has_session_code or session_id_missing:
+                        print("🗑️ Dropping and recreating SQLite table...")
+                        
+                        # Drop and recreate
+                        connection.execute(db.text("DROP TABLE IF EXISTS simple_attendance_records;"))
+                        connection.commit()
+                        
+                        connection.execute(db.text("""
+                            CREATE TABLE simple_attendance_records (
+                                record_id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('ab89',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+                                user_id TEXT NOT NULL,
+                                org_id TEXT NOT NULL,
+                                session_id TEXT,
+                                latitude REAL,
+                                longitude REAL,
+                                altitude REAL DEFAULT 0,
+                                status TEXT NOT NULL DEFAULT 'present',
+                                check_in_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                absent_timestamps TEXT,
+                                distance_from_session REAL,
+                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                            );
+                        """))
+                        connection.commit()
+                        print("✅ Recreated SQLite table with correct schema!")
+                    else:
+                        print("✅ SQLite table schema is already correct")
+        
+        print("✅ Force recreation completed!")
+        
+    except Exception as e:
+        print(f"⚠️ Force recreation failed (non-critical): {str(e)}")
+        # Don't fail the entire app startup
