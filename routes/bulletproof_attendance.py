@@ -33,13 +33,15 @@ def simple_checkin():
         data = request.get_json()
         current_user = get_current_user()
         
-        # Required fields
+        # Required fields - Accept both lat/lon and latitude/longitude
         session_id = data.get('session_id')
-        user_lat = data.get('lat')
-        user_lon = data.get('lon')
+        user_lat = data.get('lat') or data.get('latitude')
+        user_lon = data.get('lon') or data.get('longitude')
         
-        if not session_id or user_lat is None or user_lon is None:
-            return error_response("Missing required fields", 400)
+        if not session_id:
+            return error_response("session_id is required", 400)
+        if user_lat is None or user_lon is None:
+            return error_response("User location (lat/lon or latitude/longitude) is required", 400)
         
         # Get session - minimal validation
         session = AttendanceSession.query.filter_by(session_id=session_id).first()
