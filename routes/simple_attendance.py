@@ -32,8 +32,19 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     """
     Calculate distance between two points using Haversine formula.
     Simple and reliable distance calculation.
+    
+    FIXED: Ensures all inputs are converted to float to avoid Decimal/str type errors
     """
     R = 6371000  # Earth's radius in meters
+    
+    # Convert all inputs to float to handle Decimal/str/int types from database/frontend
+    try:
+        lat1 = float(lat1)
+        lon1 = float(lon1)
+        lat2 = float(lat2)
+        lon2 = float(lon2)
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Invalid coordinate values: {e}")
     
     dLat = radians(lat2 - lat1)
     dLon = radians(lon2 - lon1)
@@ -146,6 +157,20 @@ def mark_simple_attendance():
             
         alt = data.get('altitude', 0)
         
+        # CRITICAL FIX: Convert coordinates to float and validate
+        try:
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            
+            # Validate coordinate ranges
+            if lat is not None and not (-90 <= lat <= 90):
+                return error_response("Latitude must be between -90 and 90", 400)
+            if lon is not None and not (-180 <= lon <= 180):
+                return error_response("Longitude must be between -180 and 180", 400)
+                
+        except (ValueError, TypeError):
+            return error_response("Invalid coordinate format - must be numeric", 400)
+        
         if not user_id or not org_id or lat is None or lon is None:
             # Create detailed validation errors for better frontend debugging
             validation_errors = {}
@@ -173,6 +198,14 @@ def mark_simple_attendance():
         
         if target_lat is None or target_lon is None:
             return error_response("Organization location not set", 400)
+            
+        # CRITICAL FIX: Convert database coordinates to float to match frontend coordinates
+        try:
+            target_lat = float(target_lat)
+            target_lon = float(target_lon)
+            radius = float(radius) if radius is not None else 50.0
+        except (ValueError, TypeError):
+            return error_response("Invalid organization location data", 500)
         
         # Calculate distance
         distance = calculate_distance(lat, lon, target_lat, target_lon)

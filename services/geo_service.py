@@ -19,7 +19,18 @@ def haversine_distance(lat1, lon1, lat2, lon2):
         
     Returns:
         Distance in meters
+        
+    FIXED: Ensures all inputs are converted to float to avoid Decimal/str type errors
     """
+    # Convert all inputs to float to handle Decimal/str/int types from database/frontend
+    try:
+        lat1 = float(lat1)
+        lon1 = float(lon1)
+        lat2 = float(lat2)
+        lon2 = float(lon2)
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Invalid coordinate values: {e}")
+    
     # Convert decimal degrees to radians
     lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
     
