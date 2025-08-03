@@ -146,7 +146,7 @@ def _migrate_simple_attendance_records_table():
                             record_id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
                             user_id VARCHAR(36) NOT NULL,
                             org_id VARCHAR(36) NOT NULL,
-                            session_id VARCHAR(36),
+                            session_id VARCHAR(255),
                             latitude DECIMAL(10,8),
                             longitude DECIMAL(11,8),
                             altitude DECIMAL(8,2) DEFAULT 0,
@@ -223,11 +223,15 @@ def _fix_simple_attendance_records_schema():
                 # Add missing columns
                 columns_to_add = []
                 if 'session_id' not in existing_columns:
-                    columns_to_add.append("ADD COLUMN session_id VARCHAR(36)")
+                    columns_to_add.append("ADD COLUMN session_id VARCHAR(255)")
                 if 'altitude' not in existing_columns:
                     columns_to_add.append("ADD COLUMN altitude DECIMAL(8,2) DEFAULT 0")
                 if 'last_updated' not in existing_columns:
                     columns_to_add.append("ADD COLUMN last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                
+                # Resize existing columns if needed
+                if 'session_id' in existing_columns:
+                    columns_to_add.append("ALTER COLUMN session_id TYPE VARCHAR(255)")
                 
                 # Rename columns if needed
                 if 'session_code' in existing_columns and 'session_id' not in existing_columns:
