@@ -256,9 +256,9 @@ def check_out():
                 'record_id': record.record_id,
                 'check_out_time': record.check_out_time.isoformat(),
                 'location': {
-                    'lat': record.check_out_lat,
-                    'lon': record.check_out_lon
-                } if record.check_out_lat and record.check_out_lon else None
+                    'lat': record.check_out_latitude,
+                    'lon': record.check_out_longitude
+                } if record.check_out_latitude and record.check_out_longitude else None
             },
             message="Check-out successful"
         )

@@ -248,10 +248,9 @@ def create_session_model(data):
             org_id=data.get('org_id'),
             start_time=data.get('start_time'),  # Already converted to datetime
             end_time=data.get('end_time'),      # Already converted to datetime
-            location=data.get('location'),
-            latitude=data.get('latitude'),
-            longitude=data.get('longitude'),
-            radius=data.get('radius', 100),
+            location_lat=data.get('location_lat') or data.get('latitude'),
+            location_lon=data.get('location_lon') or data.get('longitude'),
+            location_radius=data.get('location_radius') or data.get('radius', 100),
             created_by=data.get('created_by'),
             is_active=data.get('is_active', True)
         )
@@ -264,6 +263,8 @@ def create_session_model(data):
         
     except Exception as e:
         print(f"DEBUG: Error creating attendance session: {str(e)}")
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
         return None
 

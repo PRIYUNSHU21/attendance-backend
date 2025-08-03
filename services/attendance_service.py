@@ -233,9 +233,16 @@ def checkout_user_attendance(record_id, lat=None, lon=None):
     if lat and lon and not validate_coordinates(lat, lon):
         raise Exception("Invalid coordinates")
     
-    result = mark_checkout(record_id, lat, lon)
-    if not result:
+    # Find the attendance record first to get session_id and user_id
+    from models.attendance import AttendanceRecord
+    record = AttendanceRecord.query.filter_by(record_id=record_id).first()
+    if not record:
         raise Exception("Attendance record not found")
+    
+    # Call mark_checkout with correct parameters
+    result = mark_checkout(record.session_id, record.user_id, lat, lon)
+    if not result:
+        raise Exception("Failed to mark checkout")
     
     return result
 
