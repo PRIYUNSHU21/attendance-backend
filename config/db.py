@@ -34,6 +34,9 @@ def init_db(app):
         # Run migration for attendance_sessions location columns
         _migrate_attendance_sessions_location_columns()
         
+        # Run migration for simple_attendance_records table
+        _migrate_simple_attendance_records_table()
+        
     return db
 
 def _migrate_attendance_sessions_location_columns():
@@ -110,4 +113,85 @@ def _migrate_attendance_sessions_location_columns():
         
     except Exception as e:
         print(f"⚠️ Migration check failed (non-critical): {str(e)}")
+        # Don't fail the entire app startup for migration issues
+
+def _migrate_simple_attendance_records_table():
+    """Create simple_attendance_records table if it doesn't exist."""
+    try:
+        # Check if we're using PostgreSQL (production) or SQLite (development)
+        engine_name = db.engine.name
+        
+        print("🔄 Checking simple_attendance_records table...")
+        
+        if engine_name == 'postgresql':
+            # PostgreSQL - Check if table exists
+            with db.engine.connect() as connection:
+                result = connection.execute(db.text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'simple_attendance_records'
+                    );
+                """)).fetchone()
+                
+                table_exists = result[0] if result else False
+                
+                if not table_exists:
+                    print("➕ Creating simple_attendance_records table...")
+                    connection.execute(db.text("""
+                        CREATE TABLE simple_attendance_records (
+                            record_id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+                            user_id VARCHAR(36) NOT NULL,
+                            org_id VARCHAR(36) NOT NULL,
+                            session_code VARCHAR(255) NOT NULL,
+                            status VARCHAR(20) NOT NULL DEFAULT 'present',
+                            check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            absent_timestamps TEXT,
+                            latitude DECIMAL(10,8),
+                            longitude DECIMAL(11,8),
+                            distance_from_session DECIMAL(10,2),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """))
+                    connection.commit()
+                    print("✅ simple_attendance_records table created!")
+                else:
+                    print("✅ simple_attendance_records table already exists")
+                    
+        elif engine_name == 'sqlite':
+            # SQLite - Check if table exists
+            with db.engine.connect() as connection:
+                result = connection.execute(db.text("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='simple_attendance_records';
+                """)).fetchone()
+                
+                if not result:
+                    print("➕ Creating simple_attendance_records table...")
+                    connection.execute(db.text("""
+                        CREATE TABLE simple_attendance_records (
+                            record_id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('ab89',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+                            user_id TEXT NOT NULL,
+                            org_id TEXT NOT NULL,
+                            session_code TEXT NOT NULL,
+                            status TEXT NOT NULL DEFAULT 'present',
+                            check_in_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            absent_timestamps TEXT,
+                            latitude REAL,
+                            longitude REAL,
+                            distance_from_session REAL,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """))
+                    connection.commit()
+                    print("✅ simple_attendance_records table created!")
+                else:
+                    print("✅ simple_attendance_records table already exists")
+        
+        print("✅ Simple attendance table migration completed!")
+        
+    except Exception as e:
+        print(f"⚠️ Simple attendance table migration failed (non-critical): {str(e)}")
         # Don't fail the entire app startup for migration issues
