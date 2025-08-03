@@ -9,6 +9,37 @@ from utils.response import success_response, error_response
 
 migration_bp = Blueprint('migration', __name__, url_prefix='/migration')
 
+@migration_bp.route('/check-attendance-records-schema', methods=['GET'])
+@token_required
+@admin_required  
+def check_attendance_records_schema():
+    """Check the schema of attendance_records table"""
+    try:
+        # Get column information for attendance_records table
+        result = db.session.execute(text("""
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns 
+            WHERE table_name = 'attendance_records'
+            ORDER BY ordinal_position
+        """))
+        
+        columns = []
+        for row in result.fetchall():
+            columns.append({
+                "name": row[0],
+                "type": row[1], 
+                "nullable": row[2],
+                "default": row[3]
+            })
+        
+        return success_response(
+            message="attendance_records schema retrieved successfully",
+            data={"columns": columns}
+        )
+        
+    except Exception as e:
+        return error_response(f"Failed to check attendance_records schema: {str(e)}", 500)
+
 @migration_bp.route('/check-tables', methods=['GET'])
 @token_required
 @admin_required
