@@ -1,6 +1,6 @@
 """
-🚀 BULLETPROOF ATTENDANCE ROUTE - Like your friend's system!
-Simple, direct, no complex validation that can fail
+🚀 BULLETPROOF ATTENDANCE - Main attendance system
+Simple, reliable attendance check-in based on proven patterns
 """
 
 from flask import Blueprint, request, jsonify
@@ -25,10 +25,7 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 @bulletproof_bp.route('/simple-checkin', methods=['POST'])
 @token_required
 def simple_checkin():
-    """
-    Bulletproof check-in - inspired by your friend's working system
-    Minimal validation, maximum reliability
-    """
+    """Main attendance check-in endpoint."""
     try:
         data = request.get_json()
         current_user = get_current_user()

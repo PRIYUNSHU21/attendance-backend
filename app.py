@@ -57,7 +57,6 @@ import os
 from routes.auth import auth_bp
 from routes.admin import admin_bp
 from routes.reports import reports_bp
-from routes.migration import migration_bp
 from routes.bulletproof_attendance import bulletproof_bp
 
 def create_app(config_name=None):
@@ -78,7 +77,6 @@ def create_app(config_name=None):
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(reports_bp, url_prefix='/reports')
-    app.register_blueprint(migration_bp, url_prefix='/migration')
     app.register_blueprint(bulletproof_bp, url_prefix='/bulletproof')   # Main attendance system
 
     # Health check endpoint

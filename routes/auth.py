@@ -8,11 +8,11 @@ from config.db import db
 from models.user import User
 from models.organisation import Organisation
 from models.session import UserSession
-from utils.auth import token_required, get_current_user
+from utils.auth import token_required, get_current_user, generate_token
 from utils.response import success_response, error_response
 from services.hash_service import hash_password, verify_password
-from services.auth_services import generate_jwt_token, generate_session_token
 import uuid
+import secrets
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -39,7 +39,7 @@ def login():
         session = UserSession(
             session_id=str(uuid.uuid4()),
             user_id=user.user_id,
-            session_token=generate_session_token(),
+            session_token=secrets.token_urlsafe(32),
             device_info=data.get('device_info', 'Unknown'),
             ip_address=request.remote_addr,
             is_active=True
@@ -49,12 +49,14 @@ def login():
         db.session.commit()
         
         # Generate JWT token
-        token = generate_jwt_token(
-            user_id=user.user_id,
-            org_id=user.org_id,
-            role=user.role,
-            session_id=session.session_id,
-            session_token=session.session_token
+        token = generate_token(
+            {
+                'user_id': user.user_id,
+                'org_id': user.org_id,
+                'role': user.role,
+                'session_id': session.session_id,
+                'session_token': session.session_token
+            }
         )
         
         return success_response(
