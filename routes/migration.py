@@ -9,6 +9,98 @@ from utils.response import success_response, error_response
 
 migration_bp = Blueprint('migration', __name__, url_prefix='/migration')
 
+@migration_bp.route('/check-tables', methods=['GET'])
+@token_required
+@admin_required
+def check_tables():
+    """Check what tables exist in the database"""
+    try:
+        # Get all tables
+        result = db.session.execute(text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+            ORDER BY table_name
+        """))
+        
+        tables = [row[0] for row in result.fetchall()]
+        
+        return success_response(
+            message="Tables retrieved successfully",
+            data={"tables": tables}
+        )
+        
+    except Exception as e:
+        return error_response(f"Failed to check tables: {str(e)}", 500)
+
+@migration_bp.route('/create-attendance-records-table', methods=['POST'])
+@token_required
+@admin_required
+def create_attendance_records_table():
+    """Create attendance_records table if it doesn't exist"""
+    try:
+        # Check if table exists
+        result = db.session.execute(text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_name = 'attendance_records'
+        """))
+        
+        existing = result.fetchone()
+        if existing:
+            return success_response(
+                message="attendance_records table already exists",
+                data={"status": "already_exists"}
+            )
+        
+        # Create the attendance_records table
+        db.session.execute(text("""
+            CREATE TABLE attendance_records (
+                record_id VARCHAR(36) PRIMARY KEY,
+                session_id VARCHAR(36) NOT NULL,
+                user_id VARCHAR(36) NOT NULL,
+                org_id VARCHAR(36) NOT NULL,
+                status VARCHAR(20) DEFAULT 'present',
+                check_in_time TIMESTAMP,
+                check_out_time TIMESTAMP,
+                check_in_latitude DOUBLE PRECISION,
+                check_in_longitude DOUBLE PRECISION,
+                check_out_latitude DOUBLE PRECISION,
+                check_out_longitude DOUBLE PRECISION,
+                location_verified BOOLEAN DEFAULT FALSE,
+                created_by VARCHAR(36),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES attendance_sessions(session_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (org_id) REFERENCES organisations(org_id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+            )
+        """))
+        
+        # Create indexes
+        db.session.execute(text("""
+            CREATE INDEX idx_attendance_records_session_id ON attendance_records(session_id)
+        """))
+        
+        db.session.execute(text("""
+            CREATE INDEX idx_attendance_records_user_id ON attendance_records(user_id)
+        """))
+        
+        db.session.execute(text("""
+            CREATE INDEX idx_attendance_records_user_session ON attendance_records(user_id, session_id)
+        """))
+        
+        db.session.commit()
+        
+        return success_response(
+            message="attendance_records table created successfully",
+            data={"status": "created"}
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f"Failed to create attendance_records table: {str(e)}", 500)
+
 @migration_bp.route('/add-location-column', methods=['POST'])
 @token_required
 @admin_required
