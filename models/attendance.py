@@ -79,10 +79,10 @@ class AttendanceRecord(db.Model):
     check_out_time = db.Column(db.DateTime)
     
     # Location verification
-    check_in_latitude = db.Column(db.Float)
-    check_in_longitude = db.Column(db.Float)
-    check_out_latitude = db.Column(db.Float)
-    check_out_longitude = db.Column(db.Float)
+    check_in_lat = db.Column(db.Float)
+    check_in_lon = db.Column(db.Float)
+    check_out_lat = db.Column(db.Float)
+    check_out_lon = db.Column(db.Float)
     location_verified = db.Column(db.Boolean, default=False)
     
     # Metadata
@@ -99,10 +99,10 @@ class AttendanceRecord(db.Model):
             'status': self.status,
             'check_in_time': self.check_in_time.isoformat() if self.check_in_time else None,
             'check_out_time': self.check_out_time.isoformat() if self.check_out_time else None,
-            'check_in_latitude': self.check_in_latitude,
-            'check_in_longitude': self.check_in_longitude,
-            'check_out_latitude': self.check_out_latitude,
-            'check_out_longitude': self.check_out_longitude,
+            'check_in_lat': self.check_in_lat,
+            'check_in_lon': self.check_in_lon,
+            'check_out_lat': self.check_out_lat,
+            'check_out_lon': self.check_out_lon,
             'location_verified': self.location_verified,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None
@@ -164,8 +164,8 @@ def mark_attendance(session_id, user_id, org_id, latitude=None, longitude=None, 
             user_id=user_id,
             org_id=org_id,
             check_in_time=datetime.now(),
-            check_in_latitude=latitude,
-            check_in_longitude=longitude,
+            check_in_lat=latitude,
+            check_in_lon=longitude,
             location_verified=True if latitude and longitude else False,
             created_by=created_by or user_id
         )
@@ -295,8 +295,8 @@ def mark_checkout(session_id, user_id, latitude=None, longitude=None):
         # Update checkout information
         record.check_out_time = datetime.now()
         if latitude and longitude:
-            record.check_out_latitude = latitude
-            record.check_out_longitude = longitude
+            record.check_out_lat = latitude
+            record.check_out_lon = longitude
         
         db.session.commit()
         return record

@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 from services.attendance_service import get_session_report, get_user_attendance_history
 from models.attendance import get_session_attendance, get_user_attendance, AttendanceSession, AttendanceRecord
 from models.user import get_users_by_org, find_user_by_id
+from config.db import db
 from utils.auth import token_required, teacher_or_admin_required, get_current_user
 from utils.response import success_response, error_response, paginated_response
 from utils.validators import validate_pagination_params
@@ -50,8 +51,6 @@ def get_organization_summary():
             start_date = end_date - timedelta(days=30)
         else:
             start_date = datetime.fromisoformat(start_date)
-        
-        from models import db
         
         # Get session statistics
         sessions_query = db.session.query(AttendanceSession).filter(
@@ -150,8 +149,6 @@ def get_detailed_user_report(user_id):
         else:
             start_date = datetime.fromisoformat(start_date)
         
-        from models import db
-        
         # Get user's attendance records in date range
         attendance_query = db.session.query(AttendanceRecord).join(AttendanceSession).filter(
             and_(
@@ -219,8 +216,6 @@ def get_attendance_trends():
         days = request.args.get('days', 30, type=int)
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
-        
-        from models import db
         
         # Get daily attendance statistics
         daily_stats = []

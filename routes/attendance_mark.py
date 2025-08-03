@@ -223,9 +223,9 @@ def check_in():
                 'check_in_time': record.check_in_time.isoformat(),
                 'status': 'present',
                 'location': {
-                    'lat': record.check_in_latitude,
-                    'lon': record.check_in_longitude
-                } if record.check_in_latitude and record.check_in_longitude else None
+                    'lat': record.check_in_lat,
+                    'lon': record.check_in_lon
+                } if record.check_in_lat and record.check_in_lon else None
             },
             message="Check-in successful"
         )
@@ -256,9 +256,9 @@ def check_out():
                 'record_id': record.record_id,
                 'check_out_time': record.check_out_time.isoformat(),
                 'location': {
-                    'lat': record.check_out_latitude,
-                    'lon': record.check_out_longitude
-                } if record.check_out_latitude and record.check_out_longitude else None
+                    'lat': record.check_out_lat,
+                    'lon': record.check_out_lon
+                } if record.check_out_lat and record.check_out_lon else None
             },
             message="Check-out successful"
         )
@@ -414,7 +414,7 @@ def get_session_attendance(session_id):
         return success_response(
             data={
                 'session_id': session_id,
-                'attendance_records': [record.to_dict() for record in records],
+                'attendance_records': records,  # Already converted to dict
                 'total_records': len(records)
             },
             message="Session attendance retrieved successfully"
