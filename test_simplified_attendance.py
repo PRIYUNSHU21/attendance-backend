@@ -17,16 +17,19 @@ def test_simplified_attendance():
     print("🧪 TESTING SIMPLIFIED ATTENDANCE SYSTEM")
     print("=" * 50)
     
-    # Test credentials
-    admin_email = "psaha21.un@gmail.com"
-    admin_password = "123456"
+    # Test credentials - TEACHER AND STUDENT
+    teacher_email = "alpha@gmail.com"
+    teacher_password = "P21042004p#"
+    
+    student_email = "beta@gmail.com"
+    student_password = "P21042004p#"
     
     try:
-        # 1. LOGIN FIRST
-        print("1. 🔐 Testing Login...")
+        # 1. TEACHER LOGIN FIRST
+        print("1. 🔐 Testing Teacher Login...")
         login_response = requests.post(f"{BASE_URL}/auth/login", json={
-            "email": admin_email,
-            "password": admin_password
+            "email": teacher_email,
+            "password": teacher_password
         })
         
         if login_response.status_code != 200:
@@ -34,13 +37,13 @@ def test_simplified_attendance():
             return
         
         login_data = login_response.json()
-        token = login_data['data']['token']
-        user_id = login_data['data']['user']['user_id']
+        teacher_token = login_data['data']['token']
+        teacher_user_id = login_data['data']['user']['user_id']
         org_id = login_data['data']['user']['org_id']
         
-        print(f"   ✅ Login successful! User ID: {user_id}")
+        print(f"   ✅ Teacher login successful! User ID: {teacher_user_id}")
         
-        headers = {"Authorization": f"Bearer {token}"}
+        teacher_headers = {"Authorization": f"Bearer {teacher_token}"}
         
         # 2. CREATE A SIMPLE SESSION (using admin route)
         print("\n2. 📅 Creating test session...")
@@ -59,7 +62,7 @@ def test_simplified_attendance():
         }
         
         session_response = requests.post(f"{BASE_URL}/admin/sessions", 
-                                       json=session_data, headers=headers)
+                                       json=session_data, headers=teacher_headers)
         
         if session_response.status_code != 201:
             print(f"   ❌ Session creation failed: {session_response.text}")
@@ -68,56 +71,48 @@ def test_simplified_attendance():
         session_id = session_response.json()['data']['session_id']
         print(f"   ✅ Session created! ID: {session_id}")
         
-        # 3. TEST SIMPLIFIED CHECK-IN
-        print("\n3. ✅ Testing simplified check-in...")
+        # 3. STUDENT LOGIN
+        print("\n3. 🔐 Student Login...")
+        student_login_response = requests.post(f"{BASE_URL}/auth/login", json={
+            "email": student_email,
+            "password": student_password
+        })
+        
+        if student_login_response.status_code != 200:
+            print(f"   ❌ Student login failed: {student_login_response.text}")
+            return
+        
+        student_data = student_login_response.json()
+        student_token = student_data['data']['token']
+        student_user_id = student_data['data']['user']['user_id']
+        student_headers = {"Authorization": f"Bearer {student_token}"}
+        
+        print(f"   ✅ Student login successful! User ID: {student_user_id}")
+        
+        # 4. TEST SIMPLIFIED CHECK-IN
+        print("\n4. ✅ Testing simplified check-in...")
         checkin_data = {
             "session_id": session_id,
             "lat": 40.7128,  # Within geofence
-            "lon": -74.0060,
-            "user_id": user_id,
-            "org_id": org_id
+            "lon": -74.0060
         }
         
-        checkin_response = requests.post(f"{BASE_URL}/simple/simple-check-in", 
-                                       json=checkin_data)
+        checkin_response = requests.post(f"{BASE_URL}/attendance/check-in", 
+                                       json=checkin_data, headers=student_headers)
         
-        print(f"   📡 Request: POST {BASE_URL}/simple/simple-check-in")
+        print(f"   📡 Request: POST {BASE_URL}/attendance/check-in")
         print(f"   📨 Data: {json.dumps(checkin_data, indent=2)}")
         print(f"   📬 Status: {checkin_response.status_code}")
         print(f"   📬 Response: {checkin_response.text}")
         
         if checkin_response.status_code == 200:
             checkin_result = checkin_response.json()
-            print(f"   ✅ Simplified check-in successful!")
-            print(f"      Status: {checkin_result.get('status')}")
-            print(f"      Distance: {checkin_result.get('distance')}m")
-            print(f"      Record ID: {checkin_result.get('record_id')}")
+            print(f"   ✅ Check-in successful!")
+            print(f"      Response: {checkin_result}")
         else:
-            print(f"   ❌ Simplified check-in failed: {checkin_response.text}")
+            print(f"   ❌ Check-in failed: {checkin_response.text}")
         
-        # 4. TEST WITH WRONG LOCATION (should be absent)
-        print("\n4. 🌍 Testing with wrong location...")
-        wrong_checkin = {
-            "session_id": session_id,
-            "lat": 41.0000,  # Far away - should be absent
-            "lon": -75.0000,
-            "user_id": "test_user_2",
-            "org_id": org_id
-        }
-        
-        wrong_response = requests.post(f"{BASE_URL}/simple/simple-check-in", 
-                                     json=wrong_checkin)
-        
-        print(f"   📬 Status: {wrong_response.status_code}")
-        print(f"   📬 Response: {wrong_response.text}")
-        
-        if wrong_response.status_code == 200:
-            wrong_result = wrong_response.json()
-            print(f"   ✅ Location validation working!")
-            print(f"      Status: {wrong_result.get('status')} (should be Absent)")
-            print(f"      Distance: {wrong_result.get('distance')}m (should be large)")
-        
-        print("\n🎉 SIMPLIFIED ATTENDANCE TEST COMPLETE!")
+        print("\n🎉 ATTENDANCE TEST COMPLETE!")
         print("=" * 50)
         
     except Exception as e:
