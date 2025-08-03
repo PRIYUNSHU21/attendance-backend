@@ -571,9 +571,9 @@ def create_attendance_session():
             created_by=current_user['user_id'],
             start_time=datetime.fromisoformat(data['start_time']),
             end_time=datetime.fromisoformat(data['end_time']),
-            latitude=data.get('latitude'),
-            longitude=data.get('longitude'),
-            radius=data.get('radius', 100),
+            latitude=data.get('latitude'),  # Optional - can be None
+            longitude=data.get('longitude'),  # Optional - can be None
+            radius=data.get('radius', 100),  # Default to 100 if not provided
             is_active=True
         )
         

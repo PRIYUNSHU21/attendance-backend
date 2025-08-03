@@ -175,14 +175,21 @@ def test_attendance_too_far(student_token, session_id):
         print(f"📊 Status: {response.status_code}")
         
         result = response.json()
-        if response.status_code == 400 and result.get('error_code') == 'LOCATION_TOO_FAR':
+        if response.status_code == 200:
+            # Check if it was correctly marked as absent for far location
+            status = result.get('data', {}).get('status')
+            distance = result.get('data', {}).get('distance')
+            
+            if status == 'absent':
+                print(f"✅ Correctly marked as absent (distance: {distance}m)")
+            else:
+                print(f"⚠️ Expected 'absent' but got '{status}' (distance: {distance}m)")
+        elif response.status_code == 400 and result.get('error_code') == 'LOCATION_TOO_FAR':
             print("✅ Correctly rejected attendance due to distance")
             if 'details' in result:
                 details = result['details']
                 print(f"   Distance: {details.get('distance')}m")
                 print(f"   Max allowed: {details.get('max_allowed')}m")
-        elif response.status_code == 200:
-            print("⚠️ Unexpectedly accepted far location - check distance calculation")
         else:
             print(f"❌ Unexpected response: {response.text}")
             
