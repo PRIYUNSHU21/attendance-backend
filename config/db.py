@@ -52,7 +52,7 @@ def _migrate_attendance_sessions_location_columns():
                     SELECT column_name 
                     FROM information_schema.columns 
                     WHERE table_name = 'attendance_sessions' 
-                    AND column_name IN ('latitude', 'longitude', 'radius')
+                    AND column_name IN ('latitude', 'longitude', 'radius', 'updated_at')
                 """)).fetchall()
                 
                 existing_columns = [row[0] for row in result]
@@ -64,6 +64,8 @@ def _migrate_attendance_sessions_location_columns():
                     columns_to_add.append("longitude FLOAT")
                 if 'radius' not in existing_columns:
                     columns_to_add.append("radius INTEGER DEFAULT 100")
+                if 'updated_at' not in existing_columns:
+                    columns_to_add.append("updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
                 
                 if columns_to_add:
                     print(f"➕ Adding missing location columns: {columns_to_add}")
@@ -91,6 +93,8 @@ def _migrate_attendance_sessions_location_columns():
                     missing_columns.append("ADD COLUMN longitude FLOAT")
                 if 'radius' not in column_names:
                     missing_columns.append("ADD COLUMN radius INTEGER DEFAULT 100")
+                if 'updated_at' not in column_names:
+                    missing_columns.append("ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
                 
                 if missing_columns:
                     print(f"➕ Adding missing location columns: {missing_columns}")

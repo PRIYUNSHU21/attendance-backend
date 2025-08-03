@@ -1,8 +1,15 @@
 # Deployment Summary - Ready for Render
 
-## 🚀 Changes Deployed
+## 🚀 Latest Changes Deployed - DATABASE MIGRATION FIX
 
-### Fixed Issues
+### 🔧 CRITICAL FIX: Attendance Sessions Location Columns
+1. **Automatic Database Migration Added**
+   - ✅ Added auto-migration in `config/db.py`
+   - ✅ Detects PostgreSQL vs SQLite environments
+   - ✅ Automatically adds missing `latitude`, `longitude`, `radius` columns
+   - ✅ Fixes "column 'latitude' does not exist" production error
+
+### Previous Fixes
 1. **Company Location Endpoint (`/simple/company/create`)**
    - ✅ Fixed SQL error for missing location columns
    - ✅ Added support for both admin and teacher roles
