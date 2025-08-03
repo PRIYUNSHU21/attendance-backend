@@ -214,8 +214,33 @@ def mark_simple_attendance():
         # Calculate distance
         distance = calculate_distance(lat, lon, target_lat, target_lon)
         
+        # DEBUG: Log calculation details for debugging
+        print(f"🔍 DEBUG - Distance calculation:")
+        print(f"   User: ({lat}, {lon})")
+        print(f"   Org: ({target_lat}, {target_lon})")
+        print(f"   Distance: {distance:.2f}m")
+        print(f"   Radius: {radius}m")
+        print(f"   Within radius: {distance <= radius}")
+        
         # Determine status - simple logic
         status = "present" if distance <= (radius or 50) else "absent"
+        print(f"   Final status: {status}")
+        
+        # IMPORTANT: Include distance in response for debugging
+        response_data = {
+            'record_id': None,  # Will be set below
+            'user_id': user_id,
+            'status': status,
+            'distance_from_session': round(distance, 2),  # Frontend expects this name
+            'check_in_time': None,  # Will be set below
+            'organization': org_name,
+            'debug_info': {
+                'user_coords': [lat, lon],
+                'org_coords': [target_lat, target_lon],
+                'radius': radius,
+                'distance_calculated': round(distance, 2)
+            }
+        }
         
         # Get current date for daily attendance
         today = datetime.utcnow().date()
@@ -237,6 +262,8 @@ def mark_simple_attendance():
         if existing:
             # Update existing record
             record_id = existing[0]
+            response_data['record_id'] = record_id
+            response_data['check_in_time'] = existing[2].isoformat() if existing[2] else None
             
             update_data = {
                 'latitude': lat,
@@ -276,6 +303,8 @@ def mark_simple_attendance():
         else:
             # Create new record
             record_id = str(uuid.uuid4())
+            response_data['record_id'] = record_id
+            response_data['check_in_time'] = now.isoformat()
             
             insert_query = """
             INSERT INTO simple_attendance_records 
@@ -302,14 +331,7 @@ def mark_simple_attendance():
         db.session.commit()
         
         return success_response(
-            data={
-                'record_id': record_id,
-                'user_id': user_id,
-                'status': status,
-                'distance': round(distance, 2),
-                'timestamp': now.isoformat(),
-                'organization': org_name
-            },
+            data=response_data,
             message=f"Attendance recorded - {status}"
         )
         
