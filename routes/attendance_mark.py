@@ -208,9 +208,9 @@ def check_in():
         if not session_id:
             return error_response("Session ID is required", 400)
         
-        # Mark attendance using the correct function
-        from models.attendance import mark_attendance
-        record = mark_attendance(session_id, user_id, current_user.get('org_id'), lat, lon, current_user.get('user_id'))
+        # Mark attendance using the service layer
+        from services.attendance_service import mark_user_attendance
+        record = mark_user_attendance(session_id, user_id, lat, lon, force)
         
         if not record:
             return error_response("Failed to create attendance record", 400)

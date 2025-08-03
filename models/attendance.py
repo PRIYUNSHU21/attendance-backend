@@ -182,6 +182,8 @@ def mark_attendance(session_id, user_id, org_id, latitude=None, longitude=None, 
         
     except Exception as e:
         print(f"Error marking attendance: {str(e)}")
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
         return None
 
