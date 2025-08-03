@@ -227,3 +227,117 @@ def check_schema():
             
         except Exception as e2:
             return error_response(f"Failed to check schema: {str(e)} | {str(e2)}", 500)
+
+@migration_bp.route('/add-org-id-column', methods=['POST'])
+@token_required
+@admin_required
+def add_org_id_column():
+    """Add org_id column to attendance_records table."""
+    try:
+        # Check if column already exists
+        result = db.session.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'attendance_records' 
+            AND column_name = 'org_id'
+        """))
+        
+        existing = result.fetchone()
+        if existing:
+            return success_response(
+                message="org_id column already exists",
+                data={"status": "already_exists"}
+            )
+        
+        # Add the column
+        db.session.execute(text("""
+            ALTER TABLE attendance_records 
+            ADD COLUMN org_id VARCHAR(36)
+        """))
+        
+        db.session.commit()
+        
+        return success_response(
+            message="org_id column added successfully",
+            data={"status": "added"}
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f"Failed to add org_id column: {str(e)}", 500)
+
+@migration_bp.route('/add-location-verified-column', methods=['POST'])
+@token_required
+@admin_required
+def add_location_verified_column():
+    """Add location_verified column to attendance_records table."""
+    try:
+        # Check if column already exists
+        result = db.session.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'attendance_records' 
+            AND column_name = 'location_verified'
+        """))
+        
+        existing = result.fetchone()
+        if existing:
+            return success_response(
+                message="location_verified column already exists",
+                data={"status": "already_exists"}
+            )
+        
+        # Add the column
+        db.session.execute(text("""
+            ALTER TABLE attendance_records 
+            ADD COLUMN location_verified BOOLEAN DEFAULT FALSE
+        """))
+        
+        db.session.commit()
+        
+        return success_response(
+            message="location_verified column added successfully",
+            data={"status": "added"}
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f"Failed to add location_verified column: {str(e)}", 500)
+
+@migration_bp.route('/add-created-by-column', methods=['POST'])
+@token_required
+@admin_required
+def add_created_by_column():
+    """Add created_by column to attendance_records table."""
+    try:
+        # Check if column already exists
+        result = db.session.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'attendance_records' 
+            AND column_name = 'created_by'
+        """))
+        
+        existing = result.fetchone()
+        if existing:
+            return success_response(
+                message="created_by column already exists",
+                data={"status": "already_exists"}
+            )
+        
+        # Add the column
+        db.session.execute(text("""
+            ALTER TABLE attendance_records 
+            ADD COLUMN created_by VARCHAR(36)
+        """))
+        
+        db.session.commit()
+        
+        return success_response(
+            message="created_by column added successfully",
+            data={"status": "added"}
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f"Failed to add created_by column: {str(e)}", 500)
