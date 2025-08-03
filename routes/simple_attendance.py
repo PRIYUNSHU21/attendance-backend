@@ -144,7 +144,11 @@ def mark_simple_attendance():
         # Extract data
         user_id = current_user.get('user_id')
         org_id = current_user.get('org_id') 
-        session_id = data.get('session_id')  # Optional - for session-based attendance
+        
+        # Handle both session_id and session_code parameters for compatibility
+        session_id = data.get('session_id')  # New format
+        if session_id is None:
+            session_id = data.get('session_code')  # Legacy/frontend format
         
         # Handle both parameter formats (latitude/longitude and lat/lon)
         lat = data.get('latitude')
