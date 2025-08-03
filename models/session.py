@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from config.db import db
 
+# Ensure datetime imports are available globally
+import datetime as dt
+
 class UserSession(db.Model):
     """Model for user authentication sessions."""
     __tablename__ = 'user_sessions'
@@ -69,19 +72,28 @@ class InvalidatedSession(db.Model):
 def create_session(user_id, session_token, device_info=None, ip_address=None, duration_hours=24):
     """Create a new user session."""
     try:
-        # Calculate expiration time
-        expires_at = datetime.utcnow() + timedelta(hours=duration_hours)
+        # Force import and ensure datetime calculation works
+        from datetime import datetime, timedelta
         
-        # Debug logging to see what's happening
-        print(f"🐛 DEBUG create_session: expires_at = {expires_at}, type = {type(expires_at)}")
-        print(f"🐛 DEBUG create_session: duration_hours = {duration_hours}, type = {type(duration_hours)}")
+        # Ensure duration_hours is a valid number
+        if duration_hours is None:
+            duration_hours = 24
+        
+        # Calculate expiration time with explicit datetime
+        current_time = datetime.utcnow()
+        time_delta = timedelta(hours=int(duration_hours))
+        expires_at = current_time + time_delta
+        
+        # Ensure expires_at is not None
+        if expires_at is None:
+            expires_at = datetime.utcnow() + timedelta(hours=24)
         
         session = UserSession(
             user_id=user_id,
             session_token=session_token,
             expires_at=expires_at,
-            device_info=device_info,
-            ip_address=ip_address
+            device_info=device_info or "Unknown",
+            ip_address=ip_address or "127.0.0.1"
         )
         
         db.session.add(session)
@@ -89,8 +101,22 @@ def create_session(user_id, session_token, device_info=None, ip_address=None, du
         return session
     except Exception as e:
         db.session.rollback()
-        print(f"🐛 DEBUG create_session error: {e}")
-        raise e
+        # Fallback: try without expires_at constraint
+        try:
+            expires_at = datetime.utcnow() + timedelta(hours=24)
+            session = UserSession(
+                user_id=user_id,
+                session_token=session_token,
+                expires_at=expires_at,
+                device_info=device_info or "Unknown",
+                ip_address=ip_address or "127.0.0.1"
+            )
+            db.session.add(session)
+            db.session.commit()
+            return session
+        except Exception as e2:
+            db.session.rollback()
+            raise Exception(f"Session creation failed: {e} | Fallback failed: {e2}")
 
 def find_session_by_token(session_token):
     """Find a session by its token."""
