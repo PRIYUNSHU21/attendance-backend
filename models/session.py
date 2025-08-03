@@ -10,17 +10,14 @@ from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from config.db import db
 
-# Ensure datetime imports are available globally
-import datetime as dt
-
 class UserSession(db.Model):
     """Model for user authentication sessions."""
     __tablename__ = 'user_sessions'
     
     session_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
     session_token = db.Column(db.String(255), unique=True, nullable=False)
-    expires_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.utcnow() + timedelta(hours=24))
+    expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     device_info = db.Column(db.Text)  # Store device/browser info
@@ -50,8 +47,8 @@ class InvalidatedSession(db.Model):
     __tablename__ = 'invalidated_sessions'
     
     session_id = db.Column(db.String(255), primary_key=True)
-    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
-    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.org_id', ondelete='CASCADE'), nullable=False)
     session_token = db.Column(db.String(255), nullable=False)
     invalidated_at = db.Column(db.DateTime, default=datetime.utcnow)
     reason = db.Column(db.String(255), nullable=False)
@@ -72,24 +69,22 @@ class InvalidatedSession(db.Model):
 def create_session(user_id, session_token, device_info=None, ip_address=None, duration_hours=24):
     """Create a new user session."""
     try:
-        # Simple, direct approach
+        expires_at = datetime.utcnow() + timedelta(hours=duration_hours)
+        
         session = UserSession(
             user_id=user_id,
             session_token=session_token,
-            device_info=device_info or "Unknown",
-            ip_address=ip_address or "127.0.0.1"
+            expires_at=expires_at,
+            device_info=device_info,
+            ip_address=ip_address
         )
-        
-        # The expires_at will be set by the model default
-        # But let's also set it explicitly just to be sure
-        session.expires_at = datetime.utcnow() + timedelta(hours=duration_hours)
         
         db.session.add(session)
         db.session.commit()
         return session
     except Exception as e:
         db.session.rollback()
-        raise Exception(f"Session creation failed: {str(e)}")
+        raise e
 
 def find_session_by_token(session_token):
     """Find a session by its token."""

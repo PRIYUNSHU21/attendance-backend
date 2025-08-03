@@ -129,7 +129,7 @@ def login_user(email, password, device_info=None, ip_address=None):
     return {
         "user": user.to_dict(),
         "session_token": session_token,
-        "token": jwt_token,  # Match expected field name
+        "jwt_token": jwt_token,
         "session_id": session.session_id
     }
 
