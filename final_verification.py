@@ -127,25 +127,58 @@ def verify_complete_solution():
     print("\n5️⃣ COMPLETE API AVAILABILITY CHECK")
     print("-" * 40)
     
+    # Get a real session ID for testing
+    try:
+        sessions_resp = requests.get(f"{base_url}/attendance/public-sessions", timeout=5)
+        real_session_id = "test-id"  # fallback
+        if sessions_resp.status_code == 200:
+            sessions = sessions_resp.json().get("data", [])
+            if sessions:
+                real_session_id = sessions[0]["session_id"]
+    except:
+        real_session_id = "test-id"
+    
     endpoints = [
-        ("/health", "Server health"),
-        ("/attendance/public-sessions", "Public sessions"),
-        ("/attendance/sessions/test-id", "Session details"),
-        ("/auth/login", "Authentication"),
-        ("/attendance/check-in", "Attendance marking")
+        ("GET", "/health", "Server health"),
+        ("GET", "/attendance/public-sessions", "Public sessions"),
+        ("GET", f"/attendance/sessions/{real_session_id}", "Session details"),
+        ("POST", "/auth/login", "Authentication", {"email": "test", "password": "test"}),
+        ("POST", "/attendance/check-in", "Attendance marking", {"session_id": "test", "lat": 40.7, "lon": -74.0})
     ]
     
     working_endpoints = 0
-    for endpoint, description in endpoints:
+    for endpoint_info in endpoints:
+        method = endpoint_info[0]
+        endpoint = endpoint_info[1]
+        description = endpoint_info[2]
+        payload = endpoint_info[3] if len(endpoint_info) > 3 else None
+        
         try:
-            response = requests.get(f"{base_url}{endpoint}", timeout=5)
-            if response.status_code in [200, 401, 404, 422]:  # Expected responses
+            if method == "GET":
+                response = requests.get(f"{base_url}{endpoint}", timeout=5)
+            else:  # POST
+                response = requests.post(f"{base_url}{endpoint}", json=payload, timeout=5)
+            
+            # Check for expected responses
+            if endpoint == "/health" and response.status_code == 200:
+                working_endpoints += 1
+                print(f"   ✅ {description}: Available ({response.status_code})")
+            elif endpoint == "/attendance/public-sessions" and response.status_code == 200:
+                working_endpoints += 1
+                print(f"   ✅ {description}: Available ({response.status_code})")
+            elif "/attendance/sessions/" in endpoint and response.status_code == 200:
+                working_endpoints += 1
+                print(f"   ✅ {description}: Available ({response.status_code})")
+            elif endpoint == "/auth/login" and response.status_code in [400, 401, 422]:  # Invalid creds but endpoint works
+                working_endpoints += 1
+                print(f"   ✅ {description}: Available ({response.status_code})")
+            elif endpoint == "/attendance/check-in" and response.status_code == 401:  # Auth required
                 working_endpoints += 1
                 print(f"   ✅ {description}: Available ({response.status_code})")
             else:
                 print(f"   ❌ {description}: Error ({response.status_code})")
-        except:
-            print(f"   ❌ {description}: Connection failed")
+        except Exception as e:
+            print(f"   ❌ {description}: Connection failed - {str(e)[:50]}...")
     
     print(f"\n✅ {working_endpoints}/{len(endpoints)} endpoints available")
     
