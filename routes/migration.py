@@ -4,12 +4,13 @@ Database migration endpoint to fix production schema
 from flask import Blueprint, request
 from config.db import db
 from sqlalchemy import text
-from utils.auth import admin_required
+from utils.auth import token_required, admin_required
 from utils.response import success_response, error_response
 
 migration_bp = Blueprint('migration', __name__, url_prefix='/migration')
 
 @migration_bp.route('/add-location-column', methods=['POST'])
+@token_required
 @admin_required
 def add_location_column():
     """Add missing location column to attendance_sessions table in production"""
@@ -63,6 +64,7 @@ def add_location_column():
             return error_response(f"Failed to add column: {str(e)} | {str(e2)}", 500)
 
 @migration_bp.route('/check-schema', methods=['GET'])
+@token_required
 @admin_required  
 def check_schema():
     """Check current database schema"""
