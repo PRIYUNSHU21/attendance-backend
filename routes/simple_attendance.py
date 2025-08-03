@@ -50,8 +50,18 @@ def create_company_location():
     """
     Create or update company/organization location.
     Simplified version of organization location setup.
+    Admin and Teacher access allowed.
     """
     try:
+        current_user = get_current_user()
+        
+        # Check if user is admin or teacher
+        if current_user.get('role') not in ['admin', 'teacher']:
+            return error_response("Admin or Teacher access required", 403)
+        # First, run the migration to ensure columns exist
+        from migrations.add_location_columns import run_migration
+        run_migration()
+        
         data = request.get_json()
         current_user = get_current_user()
         
@@ -60,10 +70,21 @@ def create_company_location():
         latitude = data.get('latitude')
         longitude = data.get('longitude')
         altitude = data.get('altitude', 0)
-        radius = data.get('radius', 50)  # Default 50 meters
+        radius = data.get('radius', 100)  # Default 100 meters to match frontend expectation
         
+        # Fallback for different parameter naming conventions
+        if latitude is None and 'location_lat' in data:
+            latitude = data.get('location_lat')
+        if longitude is None and 'location_lon' in data:
+            longitude = data.get('location_lon')
+            
         if not org_id or latitude is None or longitude is None:
             return error_response("Missing organization or location details", 400)
+        
+        # Get organization name for the response
+        org_query = "SELECT name FROM organisations WHERE org_id = :org_id"
+        org_result = db.session.execute(db.text(org_query), {'org_id': org_id}).fetchone()
+        org_name = org_result[0] if org_result else "Organization"
         
         # Update organization with location
         update_query = """
@@ -81,12 +102,15 @@ def create_company_location():
         })
         db.session.commit()
         
+        # Format response to match frontend expectation
         return success_response(
             data={
-                'org_id': org_id,
-                'latitude': latitude,
-                'longitude': longitude,
-                'radius': radius
+                'name': data.get('name', org_name),
+                'location': {
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'radius': radius
+                }
             },
             message="Company location updated successfully"
         )
@@ -110,12 +134,29 @@ def mark_simple_attendance():
         user_id = current_user.get('user_id')
         org_id = current_user.get('org_id') 
         session_id = data.get('session_id')  # Optional - for session-based attendance
+        
+        # Handle both parameter formats (latitude/longitude and lat/lon)
         lat = data.get('latitude')
+        if lat is None:
+            lat = data.get('lat')
+            
         lon = data.get('longitude')
+        if lon is None:
+            lon = data.get('lon')
+            
         alt = data.get('altitude', 0)
         
         if not user_id or not org_id or lat is None or lon is None:
-            return error_response("Missing required fields", 400)
+            # Create detailed validation errors for better frontend debugging
+            validation_errors = {}
+            if session_id is None:
+                validation_errors['session_id'] = ['Missing required parameter']
+            if lat is None:
+                validation_errors['latitude'] = ['Missing required parameter']
+            if lon is None:
+                validation_errors['longitude'] = ['Missing required parameter']
+                
+            return error_response(f"Invalid keys in input: {validation_errors}", 422, "Unprocessable Entity")
         
         # Get organization location
         org_query = """
@@ -185,7 +226,12 @@ def mark_simple_attendance():
                 else:
                     existing_absents = now.isoformat()
                 
-                update_query += ", absent_timestamps = :absent_timestamps"
+                update_query = """
+                UPDATE simple_attendance_records 
+                SET latitude = :latitude, longitude = :longitude, altitude = :altitude,
+                    status = :status, last_updated = :last_updated, absent_timestamps = :absent_timestamps
+                WHERE record_id = :record_id
+                """
                 update_data['absent_timestamps'] = existing_absents
             
             db.session.execute(db.text(update_query), update_data)
