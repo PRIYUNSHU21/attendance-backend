@@ -37,6 +37,9 @@ def init_db(app):
         # Run migration for simple_attendance_records table
         _migrate_simple_attendance_records_table()
         
+        # Run schema fix for simple_attendance_records table
+        _fix_simple_attendance_records_schema()
+        
     return db
 
 def _migrate_attendance_sessions_location_columns():
@@ -143,15 +146,16 @@ def _migrate_simple_attendance_records_table():
                             record_id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
                             user_id VARCHAR(36) NOT NULL,
                             org_id VARCHAR(36) NOT NULL,
-                            session_code VARCHAR(255) NOT NULL,
-                            status VARCHAR(20) NOT NULL DEFAULT 'present',
-                            check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            absent_timestamps TEXT,
+                            session_id VARCHAR(36),
                             latitude DECIMAL(10,8),
                             longitude DECIMAL(11,8),
+                            altitude DECIMAL(8,2) DEFAULT 0,
+                            status VARCHAR(20) NOT NULL DEFAULT 'present',
+                            check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            absent_timestamps TEXT,
                             distance_from_session DECIMAL(10,2),
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         );
                     """))
                     connection.commit()
@@ -174,15 +178,16 @@ def _migrate_simple_attendance_records_table():
                             record_id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('ab89',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
                             user_id TEXT NOT NULL,
                             org_id TEXT NOT NULL,
-                            session_code TEXT NOT NULL,
-                            status TEXT NOT NULL DEFAULT 'present',
-                            check_in_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-                            absent_timestamps TEXT,
+                            session_id TEXT,
                             latitude REAL,
                             longitude REAL,
+                            altitude REAL DEFAULT 0,
+                            status TEXT NOT NULL DEFAULT 'present',
+                            check_in_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            absent_timestamps TEXT,
                             distance_from_session REAL,
-                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                         );
                     """))
                     connection.commit()
@@ -195,3 +200,80 @@ def _migrate_simple_attendance_records_table():
     except Exception as e:
         print(f"⚠️ Simple attendance table migration failed (non-critical): {str(e)}")
         # Don't fail the entire app startup for migration issues
+
+def _fix_simple_attendance_records_schema():
+    """Fix schema mismatch in simple_attendance_records table."""
+    try:
+        engine_name = db.engine.name
+        
+        print("🔧 Fixing simple_attendance_records schema...")
+        
+        if engine_name == 'postgresql':
+            # PostgreSQL schema fixes
+            with db.engine.connect() as connection:
+                # Check which columns are missing
+                result = connection.execute(db.text("""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'simple_attendance_records' 
+                    AND table_schema = 'public';
+                """)).fetchall()
+                
+                existing_columns = [row[0] for row in result]
+                
+                # Add missing columns
+                columns_to_add = []
+                if 'session_id' not in existing_columns:
+                    columns_to_add.append("ADD COLUMN session_id VARCHAR(36)")
+                if 'altitude' not in existing_columns:
+                    columns_to_add.append("ADD COLUMN altitude DECIMAL(8,2) DEFAULT 0")
+                if 'last_updated' not in existing_columns:
+                    columns_to_add.append("ADD COLUMN last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                
+                # Rename columns if needed
+                if 'session_code' in existing_columns and 'session_id' not in existing_columns:
+                    columns_to_add.append("RENAME COLUMN session_code TO session_id")
+                if 'updated_at' in existing_columns and 'last_updated' not in existing_columns:
+                    columns_to_add.append("RENAME COLUMN updated_at TO last_updated")
+                
+                # Apply fixes
+                for column_change in columns_to_add:
+                    try:
+                        alter_query = f"ALTER TABLE simple_attendance_records {column_change}"
+                        connection.execute(db.text(alter_query))
+                        connection.commit()
+                        print(f"✅ Applied: {column_change}")
+                    except Exception as e:
+                        print(f"⚠️ Skipped: {column_change} - {str(e)}")
+                        connection.rollback()
+                        
+        elif engine_name == 'sqlite':
+            # SQLite schema fixes (more limited)
+            with db.engine.connect() as connection:
+                # Get current schema
+                result = connection.execute(db.text("PRAGMA table_info(simple_attendance_records)")).fetchall()
+                existing_columns = [row[1] for row in result]
+                
+                # Add missing columns (SQLite doesn't support RENAME COLUMN easily)
+                columns_to_add = []
+                if 'session_id' not in existing_columns:
+                    columns_to_add.append("ADD COLUMN session_id TEXT")
+                if 'altitude' not in existing_columns:
+                    columns_to_add.append("ADD COLUMN altitude REAL DEFAULT 0")
+                if 'last_updated' not in existing_columns:
+                    columns_to_add.append("ADD COLUMN last_updated DATETIME DEFAULT CURRENT_TIMESTAMP")
+                
+                # Apply column additions
+                for column_def in columns_to_add:
+                    try:
+                        alter_query = f"ALTER TABLE simple_attendance_records {column_def}"
+                        connection.execute(db.text(alter_query))
+                        connection.commit()
+                        print(f"✅ Added: {column_def}")
+                    except Exception as e:
+                        print(f"⚠️ Skipped: {column_def} - {str(e)}")
+        
+        print("✅ Schema fix completed!")
+        
+    except Exception as e:
+        print(f"⚠️ Schema fix failed (non-critical): {str(e)}")
+        # Don't fail the entire app startup for schema issues
