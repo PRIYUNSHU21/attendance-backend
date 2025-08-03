@@ -35,8 +35,7 @@ class AttendanceSession(db.Model):
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
     
-    # Location data for geo-fencing (optional fields for backward compatibility)
-    location = db.Column(db.String(500))  # Legacy location field - exists in DB
+    # Location data for geo-fencing
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float) 
     radius = db.Column(db.Integer, default=100)  # meters

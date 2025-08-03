@@ -62,6 +62,7 @@ from routes.auth import auth_bp
 from routes.attendance_mark import attendance_bp
 from routes.admin import admin_bp
 from routes.reports import reports_bp
+from routes.migration import migration_bp
 from utils.response import success_response, error_response
 from utils.validators import validate_attendance_data
 import os
@@ -85,6 +86,7 @@ def create_app(config_name=None):
     app.register_blueprint(attendance_bp, url_prefix='/attendance')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(reports_bp, url_prefix='/reports')
+    app.register_blueprint(migration_bp, url_prefix='/migration')
 
     # Health check endpoint
     @app.route('/', methods=['GET'])
