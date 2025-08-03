@@ -69,7 +69,12 @@ class InvalidatedSession(db.Model):
 def create_session(user_id, session_token, device_info=None, ip_address=None, duration_hours=24):
     """Create a new user session."""
     try:
+        # Calculate expiration time
         expires_at = datetime.utcnow() + timedelta(hours=duration_hours)
+        
+        # Debug logging to see what's happening
+        print(f"🐛 DEBUG create_session: expires_at = {expires_at}, type = {type(expires_at)}")
+        print(f"🐛 DEBUG create_session: duration_hours = {duration_hours}, type = {type(duration_hours)}")
         
         session = UserSession(
             user_id=user_id,
@@ -84,6 +89,7 @@ def create_session(user_id, session_token, device_info=None, ip_address=None, du
         return session
     except Exception as e:
         db.session.rollback()
+        print(f"🐛 DEBUG create_session error: {e}")
         raise e
 
 def find_session_by_token(session_token):
