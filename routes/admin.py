@@ -696,10 +696,10 @@ def get_students_in_organization():
         # Calculate pagination info
         total_pages = (total_students + per_page - 1) // per_page
         
-        return success_response(
-            data=students_data,
-            message=f"Found {total_students} students in organization",
-            pagination={
+        # Create response data with pagination
+        response_data = {
+            'students': students_data,
+            'pagination': {
                 'page': page,
                 'per_page': per_page,
                 'total': total_students,
@@ -707,6 +707,11 @@ def get_students_in_organization():
                 'has_next': page < total_pages,
                 'has_prev': page > 1
             }
+        }
+        
+        return success_response(
+            data=response_data,
+            message=f"Found {total_students} students in organization"
         )
         
     except Exception as e:
