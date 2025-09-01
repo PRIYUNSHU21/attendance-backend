@@ -21,27 +21,40 @@ def init_db(app):
     db.init_app(app)
     
     with app.app_context():
-        # Import all models to ensure they're registered with SQLAlchemy
-        from models.user import User
-        from models.organisation import Organisation
-        from models.session import UserSession
-        from models.attendance import AttendanceSession, AttendanceRecord
-        
-        # Create all tables
-        db.create_all()
-        print("✅ Database tables created successfully!")
-        
-        # Run migration for attendance_sessions location columns
-        _migrate_attendance_sessions_location_columns()
-        
-        # Run migration for simple_attendance_records table
-        _migrate_simple_attendance_records_table()
-        
-        # Run schema fix for simple_attendance_records table
-        _fix_simple_attendance_records_schema()
-        
-        # Force recreate table if schema issues persist
-        _force_recreate_simple_attendance_records_table()
+        try:
+            # Test database connection first
+            db.engine.execute(db.text("SELECT 1"))
+            print("✅ Database connection successful!")
+            
+            # Import all models to ensure they're registered with SQLAlchemy
+            from models.user import User
+            from models.organisation import Organisation
+            from models.session import UserSession
+            from models.attendance import AttendanceSession, AttendanceRecord
+            
+            # Create all tables
+            db.create_all()
+            print("✅ Database tables created successfully!")
+            
+            # Run migration for attendance_sessions location columns
+            _migrate_attendance_sessions_location_columns()
+            
+            # Run migration for simple_attendance_records table
+            _migrate_simple_attendance_records_table()
+            
+            # Run schema fix for simple_attendance_records table
+            _fix_simple_attendance_records_schema()
+            
+            # Force recreate table if schema issues persist
+            _force_recreate_simple_attendance_records_table()
+            
+        except Exception as e:
+            print(f"❌ Database initialization failed: {str(e)}")
+            print("💡 This might be due to:")
+            print("   1. Incorrect DATABASE_URL environment variable")
+            print("   2. Database server not accessible")
+            print("   3. SSL/connection timeout issues")
+            raise e
         
     return db
 

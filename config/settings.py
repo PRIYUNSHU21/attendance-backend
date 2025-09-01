@@ -56,9 +56,14 @@ class Config:
         if _db_url.startswith("postgres://"):
             _db_url = _db_url.replace("postgres://", "postgresql://", 1)
         
-        # Use psycopg2 for better compatibility
-        if "postgresql://" in _db_url and "?" not in _db_url:
-            _db_url += "?sslmode=require"
+        # Add SSL and connection parameters for better stability
+        if "postgresql://" in _db_url:
+            # Remove any existing parameters
+            if "?" in _db_url:
+                _db_url = _db_url.split("?")[0]
+            
+            # Add robust connection parameters for Render PostgreSQL
+            _db_url += "?sslmode=require&connect_timeout=30&application_name=attendance_backend"
         
         SQLALCHEMY_DATABASE_URI = _db_url
     else:
