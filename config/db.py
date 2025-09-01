@@ -22,8 +22,9 @@ def init_db(app):
     
     with app.app_context():
         try:
-            # Test database connection first
-            db.engine.execute(db.text("SELECT 1"))
+            # Test database connection first (using newer SQLAlchemy syntax)
+            with db.engine.connect() as connection:
+                connection.execute(db.text("SELECT 1"))
             print("✅ Database connection successful!")
             
             # Import all models to ensure they're registered with SQLAlchemy
