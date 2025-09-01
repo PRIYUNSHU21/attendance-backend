@@ -637,3 +637,79 @@ def get_dashboard_stats():
         )
     except Exception as e:
         return error_response(str(e), 500)
+
+@admin_bp.route('/students', methods=['GET'])
+@token_required
+@teacher_or_admin_required
+def get_students_in_organization():
+    """
+    Simple endpoint for teachers to get students in their organization.
+    Dedicated endpoint to avoid complexity of the generic /users endpoint.
+    """
+    try:
+        current_user = get_current_user()
+        org_id = current_user.get('org_id')
+        
+        if not org_id:
+            return error_response("User organization not found", 400)
+        
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        
+        # Validate pagination
+        if page < 1:
+            page = 1
+        if per_page < 1 or per_page > 100:
+            per_page = 20
+        
+        # Direct database query for students in organization
+        from models.user import User
+        
+        # Query students in the organization
+        query = User.query.filter_by(
+            org_id=org_id,
+            role='student',
+            is_active=True
+        )
+        
+        # Get total count
+        total_students = query.count()
+        
+        # Apply pagination
+        offset = (page - 1) * per_page
+        students = query.offset(offset).limit(per_page).all()
+        
+        # Convert to dict format
+        students_data = []
+        for student in students:
+            students_data.append({
+                'user_id': student.user_id,
+                'name': student.name,
+                'email': student.email,
+                'role': student.role,
+                'org_id': student.org_id,
+                'is_active': student.is_active,
+                'created_at': student.created_at.isoformat() if student.created_at else None
+            })
+        
+        # Calculate pagination info
+        total_pages = (total_students + per_page - 1) // per_page
+        
+        return success_response(
+            data=students_data,
+            message=f"Found {total_students} students in organization",
+            pagination={
+                'page': page,
+                'per_page': per_page,
+                'total': total_students,
+                'total_pages': total_pages,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        )
+        
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error in get_students_in_organization: {str(e)}")
+        return error_response(f"Error retrieving students: {str(e)}", 500)
